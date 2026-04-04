@@ -16,6 +16,32 @@ const stepStatusOptions: { value: StepStatus; label: string }[] = [
   { value: 'skipped', label: 'Skipped' },
 ];
 
+function HandoffPrompt({ value, onSave }: { value: string; onSave: (val: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (editing) {
+    return (
+      <div className="handoff-prompt">
+        <textarea value={draft} onChange={e => setDraft(e.target.value)} className="edit-textarea" rows={3} placeholder="Describe the handoff context, what was done, and what the next person needs to know..." autoFocus />
+        <div className="edit-actions" style={{ marginTop: 'var(--space-xs)' }}>
+          <button className="btn btn-small btn-primary" onClick={() => { onSave(draft); setEditing(false); }}>Save</button>
+          <button className="btn btn-small" onClick={() => { setDraft(value); setEditing(false); }}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="handoff-prompt" onClick={() => { setDraft(value); setEditing(true); }}>
+      <span className="handoff-label">Handoff Prompt</span>
+      <div className="handoff-content">
+        {value || <span className="phase-field-empty">Click to add handoff prompt...</span>}
+      </div>
+    </div>
+  );
+}
+
 function ProjectInstructions({ value, onSave }: { value: string; onSave: (val: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -335,6 +361,15 @@ export default function ProjectDetailPage() {
                           </div>
                         </div>
                         <button className="task-delete" onClick={() => deleteStep(phase.id, step.id)}>×</button>
+                        {step.status === 'complete' && (
+                          <HandoffPrompt
+                            value={step.handoffPrompt || ''}
+                            onSave={(val) => {
+                              const updatedPhases = phases.map(p => p.id === phase.id ? { ...p, steps: p.steps.map(s => s.id === step.id ? { ...s, handoffPrompt: val } : s) } : p);
+                              updateProject({ phases: updatedPhases });
+                            }}
+                          />
+                        )}
                       </div>
                     ))}
 
@@ -421,6 +456,19 @@ export default function ProjectDetailPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Phase Handoff Prompt - only when complete */}
+                  {phase.status === 'complete' && (
+                    <div style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--border)' }}>
+                      <HandoffPrompt
+                        value={phase.handoffPrompt || ''}
+                        onSave={(val) => {
+                          const updatedPhases = phases.map(p => p.id === phase.id ? { ...p, handoffPrompt: val } : p);
+                          updateProject({ phases: updatedPhases });
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -452,6 +500,14 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
               <button className="task-delete" onClick={() => deleteTask(task.id)}>×</button>
+              {task.done && (
+                <HandoffPrompt
+                  value={task.handoffPrompt || ''}
+                  onSave={(val) => {
+                    updateProject({ tasks: tasks.map(t => t.id === task.id ? { ...t, handoffPrompt: val } : t) });
+                  }}
+                />
+              )}
             </div>
           ))}
           {tasks.length === 0 && !addingTask && (

@@ -19,6 +19,7 @@ export interface Task {
   projectId: string;
   notes?: string;
   createdAt: string;
+  handoffPrompt?: string;
 }
 
 export interface Project {
@@ -127,6 +128,7 @@ export interface PhaseStep {
   assignees: Collaborator[];
   notes?: string;
   completedAt?: string;
+  handoffPrompt?: string;
 }
 
 export interface Phase {
@@ -142,6 +144,7 @@ export interface Phase {
   completedAt?: string;
   instructions?: string;
   checklistInstructions?: string;
+  handoffPrompt?: string;
 }
 
 export interface Workstream {
