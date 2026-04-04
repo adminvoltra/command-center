@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { Project, Task, Collaborator } from '@/lib/context';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
@@ -229,13 +230,13 @@ export default function ProjectsPage() {
 
     return (
       <div className="project-card">
-        <div className="project-header" onClick={() => startEditing(project)} style={{ cursor: 'pointer' }}>
+        <Link href={`/projects/${project.id}`} className="project-header" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
           <span className="project-name">{project.name}</span>
           <div className="project-meta">
             <CollaboratorBadges assignees={project.assignees || []} />
             <span className={`badge badge-${project.status}`}>{project.status}</span>
           </div>
-        </div>
+        </Link>
 
         <div className="project-progress">
           <div className="progress-bar">

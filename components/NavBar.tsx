@@ -6,11 +6,11 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { href: '/', label: 'Overview' },
   { href: '/projects', label: 'Projects' },
-  { href: '/goals', label: 'Goals' },
   { href: '/schedule', label: 'Schedule' },
+  { href: '/goals', label: 'Goals' },
+  { href: '/todos', label: 'Todos' },
   { href: '/jobs', label: 'Clients' },
   { href: '/log', label: 'Work Log' },
-  { href: '/todos', label: 'Todos' },
   { href: '/experiments', label: 'AI Lab' },
 ];
 
@@ -24,7 +24,7 @@ export default function NavBar() {
           <img src="/branding/logo.png" alt="Voltra" className="brand-logo" />
           <div className="brand-text">
             <span className="brand-name">Command Center</span>
-            <span className="brand-sub">Operations Dashboard</span>
+            <span className="brand-sub">Mission Control</span>
           </div>
         </Link>
 

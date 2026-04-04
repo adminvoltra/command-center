@@ -3,8 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/useAppContext';
-import Modal from '@/components/Modal';
-import type { AgencyScoreEntry } from '@/lib/context';
+import { CollaboratorBadges } from '@/components/CollaboratorPicker';
 
 const backgroundImages = [
   '/media/Gould_Vesturhorn-Mt.-Wave-Reflections-.jpg',
@@ -23,65 +22,14 @@ const backgroundImages = [
 ];
 
 export default function Overview() {
-  const { ctx, save, refresh, isLoading } = useAppContext();
+  const { ctx, refresh, isLoading } = useAppContext();
   const [updateText, setUpdateText] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateMsg, setUpdateMsg] = useState('');
-  const [isCalculatingScore, setIsCalculatingScore] = useState(false);
-  const [showScoreModal, setShowScoreModal] = useState(false);
 
   const backgroundImage = useMemo(() => {
-    const randomIndex = Math.floor(Math.random() * backgroundImages.length);
-    return backgroundImages[randomIndex];
+    return backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
   }, []);
-
-
-  // Get today's date in YYYY-MM-DD format
-  const today = new Date().toISOString().split('T')[0];
-
-  // Get today's agency score if it exists
-  const todayScore: AgencyScoreEntry | undefined = (ctx.agencyScores || []).find(s => s.date === today);
-
-  // Get recent scores for trend (last 7 days)
-  const recentScores = (ctx.agencyScores || []).slice(-7);
-
-  // Calculate agency score
-  const calculateScore = async () => {
-    setIsCalculatingScore(true);
-    try {
-      const res = await fetch('/api/agency-score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context: ctx }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        await refresh(); // Refresh context to get updated scores
-        setShowScoreModal(true);
-      }
-    } catch (err) {
-      console.error('Failed to calculate score:', err);
-    } finally {
-      setIsCalculatingScore(false);
-    }
-  };
-
-  // Get score color based on value
-  const getScoreColor = (score: number) => {
-    if (score >= 75) return 'var(--success)';
-    if (score >= 60) return 'var(--gold)';
-    if (score >= 40) return 'var(--warning)';
-    return 'var(--error)';
-  };
-
-  // Get score label
-  const getScoreLabel = (score: number) => {
-    if (score >= 90) return 'Exceptional';
-    if (score >= 75) return 'Strong';
-    if (score >= 60) return 'Good';
-    if (score >= 40) return 'Average';
-    return 'Needs Work';
-  };
 
   if (isLoading) {
     return (
@@ -95,7 +43,6 @@ export default function Overview() {
     if (!updateText.trim()) return;
     setIsUpdating(true);
     setUpdateMsg('');
-
     try {
       const res = await fetch('/api/update', {
         method: 'POST',
@@ -104,36 +51,39 @@ export default function Overview() {
       });
       const data = await res.json();
       if (data.success) {
-        await refresh(); // Reload context from Redis
+        await refresh();
         setUpdateText('');
-        setUpdateMsg('Dashboard updated successfully');
+        setUpdateMsg('Updated successfully');
         setTimeout(() => setUpdateMsg(''), 3000);
       } else {
-        setUpdateMsg(data.error || 'Update failed. Please try again.');
+        setUpdateMsg(data.error || 'Update failed.');
       }
     } catch {
-      setUpdateMsg('Update failed. Please try again.');
+      setUpdateMsg('Update failed.');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // Calculate stats
+  const today = new Date().toISOString().split('T')[0];
   const totalProjects = ctx.projects.length;
-  const paidProjects = ctx.projects.filter(p => p.category === 'paid').length;
-  const growthProjects = ctx.projects.filter(p => p.category === 'growth').length;
+  const activeProjects = ctx.projects.filter(p => p.status === 'active').length;
   const doneGoals = ctx.weeklyGoals.filter(g => g.done).length;
   const totalGoals = ctx.weeklyGoals.length;
-  const highPriorityGoals = ctx.weeklyGoals.filter(g => g.priority === 'high' && !g.done).length;
+  const totalTasks = ctx.projects.reduce((sum, p) => sum + (p.tasks || []).length, 0);
+  const doneTasks = ctx.projects.reduce((sum, p) => sum + (p.tasks || []).filter(t => t.done).length, 0);
+  const scheduleEvents = (ctx.scheduleEvents || []).length;
 
   return (
     <main className="page-container overview-page">
       {/* Background Image */}
-      <div
-        className="overview-background"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
-      />
+      <div className="overview-background" style={{ backgroundImage: `url(${backgroundImage})` }} />
       <div className="overview-overlay" />
+
+      {/* Hero Banner */}
+      <div className="hero-banner" style={{ backgroundImage: `url('/branding/cover-header2.png')` }}>
+        <div className="hero-banner-overlay" />
+      </div>
 
       {/* Page Header */}
       <div className="page-header">
@@ -143,10 +93,68 @@ export default function Overview() {
         </p>
       </div>
 
-      {/* Hero Banner */}
-      <div className="hero-banner" style={{ backgroundImage: `url('/branding/cover-header2.png')` }}>
-        <div className="hero-banner-overlay" />
+      {/* Quick Stats */}
+      <div className="mc-stats" style={{ marginBottom: 'var(--space-xl)' }}>
+        <div className="mc-stat">
+          <span className="mc-stat-value">{activeProjects}</span>
+          <span className="mc-stat-label">Active Projects</span>
+        </div>
+        <div className="mc-stat">
+          <span className="mc-stat-value">{doneTasks}/{totalTasks || '—'}</span>
+          <span className="mc-stat-label">Tasks Done</span>
+        </div>
+        <div className="mc-stat">
+          <span className="mc-stat-value">{doneGoals}/{totalGoals || '—'}</span>
+          <span className="mc-stat-label">Goals Done</span>
+        </div>
+        <div className="mc-stat">
+          <span className="mc-stat-value">{scheduleEvents}</span>
+          <span className="mc-stat-label">Scheduled Events</span>
+        </div>
       </div>
+
+      {/* Active Projects */}
+      {ctx.projects.length > 0 && (
+        <div style={{ marginBottom: 'var(--space-xl)' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-2)', marginBottom: 'var(--space-md)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Projects</h2>
+          <div className="project-grid">
+            {ctx.projects.map(project => {
+              const phases = project.phases || [];
+              const completedPhases = phases.filter(p => p.status === 'complete').length;
+              const currentPhase = phases.find(p => p.status === 'in-progress') || phases.find(p => p.status !== 'complete');
+              const projectTasks = (project.tasks || []);
+              const tasksDone = projectTasks.filter(t => t.done).length;
+
+              return (
+                <Link href={`/projects/${project.id}`} key={project.id} className="project-card" style={{ textDecoration: 'none', cursor: 'pointer' }}>
+                  <div className="project-header">
+                    <span className="project-name">{project.name}</span>
+                    <div className="project-meta">
+                      <CollaboratorBadges assignees={project.assignees || []} />
+                      <span className={`badge badge-${project.status}`}>{project.status}</span>
+                    </div>
+                  </div>
+                  <div className="project-progress">
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${project.progress}%` }} />
+                    </div>
+                    <div className="progress-label">
+                      <span>Progress</span>
+                      <span>{project.progress}%</span>
+                    </div>
+                  </div>
+                  {project.notes && <p className="project-notes">{project.notes}</p>}
+                  <div className="project-footer">
+                    {phases.length > 0 && <span className="project-rate">{completedPhases}/{phases.length} phases</span>}
+                    {projectTasks.length > 0 && <span className="project-rate">{tasksDone}/{projectTasks.length} tasks</span>}
+                    {currentPhase && <span className="project-days">Phase: {currentPhase.name}</span>}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Navigation Cards */}
       <div className="overview-nav">
@@ -158,7 +166,6 @@ export default function Overview() {
           </div>
           <span className="nav-card-label">Projects</span>
           <span className="nav-card-count">{totalProjects} total</span>
-          <span className="nav-card-detail">{paidProjects} paid · {growthProjects} growth</span>
         </Link>
 
         <Link href="/goals" className="nav-card">
@@ -170,7 +177,6 @@ export default function Overview() {
           </div>
           <span className="nav-card-label">Goals</span>
           <span className="nav-card-count">{doneGoals}/{totalGoals} done</span>
-          <span className="nav-card-detail">{highPriorityGoals > 0 ? `${highPriorityGoals} high priority` : 'No high priority'}</span>
         </Link>
 
         <Link href="/schedule" className="nav-card">
@@ -181,20 +187,18 @@ export default function Overview() {
             </svg>
           </div>
           <span className="nav-card-label">Schedule</span>
-          <span className="nav-card-count">{ctx.dailyPlan.length} blocks</span>
-          <span className="nav-card-detail">{ctx.dailyPlan[0]?.time || 'No schedule'}</span>
+          <span className="nav-card-count">{scheduleEvents} events</span>
         </Link>
 
-        <Link href="/jobs" className="nav-card">
+        <Link href="/todos" className="nav-card">
           <div className="nav-card-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
           </div>
-          <span className="nav-card-label">Clients</span>
-          <span className="nav-card-count">{ctx.jobSearch.activeConversations.length} active</span>
-          <span className="nav-card-detail">{ctx.jobSearch.applicationsThisWeek} contacts this week</span>
+          <span className="nav-card-label">Todos</span>
+          <span className="nav-card-count">{doneTasks}/{totalTasks}</span>
         </Link>
 
         <Link href="/log" className="nav-card">
@@ -204,12 +208,10 @@ export default function Overview() {
               <polyline points="14 2 14 8 20 8" />
               <line x1="16" y1="13" x2="8" y2="13" />
               <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
             </svg>
           </div>
           <span className="nav-card-label">Work Log</span>
-          <span className="nav-card-count">{(ctx.activityLog || []).length} entries</span>
-          <span className="nav-card-detail">{(ctx.activityLog || []).filter(a => a.timestamp.startsWith(today)).length} today</span>
+          <span className="nav-card-count">{(ctx.activityLog || []).filter(a => a.timestamp.startsWith(today)).length} today</span>
         </Link>
       </div>
 
@@ -217,7 +219,7 @@ export default function Overview() {
       <div className="update-section">
         <h2 className="update-title">Update Dashboard</h2>
         <p className="update-subtitle">
-          Type natural language commands to update your dashboard. Example: &quot;Mark project X as done&quot; or &quot;Add new client to target companies&quot;
+          Type natural language commands. Example: &quot;Mark project X as done&quot; or &quot;Add a new growth project&quot;
         </p>
         <div className="update-bar">
           <input
@@ -229,76 +231,12 @@ export default function Overview() {
             onKeyDown={e => { if (e.key === 'Enter') handleUpdate(); }}
             disabled={isUpdating}
           />
-          <button
-            className="update-btn"
-            onClick={handleUpdate}
-            disabled={isUpdating || !updateText.trim()}
-          >
+          <button className="update-btn" onClick={handleUpdate} disabled={isUpdating || !updateText.trim()}>
             {isUpdating ? 'Updating...' : 'Update'}
           </button>
         </div>
         {updateMsg && <div className="update-msg">{updateMsg}</div>}
       </div>
-
-      {/* Agency Score Detail Modal */}
-      <Modal
-        isOpen={showScoreModal}
-        onClose={() => setShowScoreModal(false)}
-        title="Agency Score Report"
-      >
-        {todayScore && (
-          <div className="agency-report">
-            <div className="agency-report-header">
-              <div className="agency-report-score" style={{ color: getScoreColor(todayScore.score) }}>
-                {todayScore.score}
-                <span className="agency-report-max">/100</span>
-              </div>
-              <div className="agency-report-label" style={{ color: getScoreColor(todayScore.score) }}>
-                {getScoreLabel(todayScore.score)}
-              </div>
-            </div>
-
-            <div className="agency-report-meta">
-              <span>{new Date(todayScore.calculatedAt).toLocaleString()}</span>
-              <span>{todayScore.activitiesCount} activities analyzed</span>
-            </div>
-
-            <div className="agency-report-content">
-              <h4>Analysis</h4>
-              <p>{todayScore.report}</p>
-            </div>
-
-            {/* Today's Activities */}
-            <div className="agency-report-activities">
-              <h4>Today&apos;s Activities</h4>
-              {(ctx.activityLog || [])
-                .filter(a => a.timestamp.startsWith(today))
-                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                .map(activity => (
-                  <div key={activity.id} className="activity-item">
-                    <span className="activity-type">{activity.type.replace('_', ' ')}</span>
-                    <span className="activity-desc">{activity.description}</span>
-                    <span className="activity-time">
-                      {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))}
-              {(ctx.activityLog || []).filter(a => a.timestamp.startsWith(today)).length === 0 && (
-                <p className="no-activities">No activities logged today yet.</p>
-              )}
-            </div>
-
-            <div className="agency-report-actions">
-              <button className="btn" onClick={() => setShowScoreModal(false)}>
-                Close
-              </button>
-              <button className="btn btn-primary" onClick={() => { setShowScoreModal(false); calculateScore(); }}>
-                Recalculate
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </main>
   );
 }

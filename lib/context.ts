@@ -34,6 +34,8 @@ export interface Project {
   lastTouched?: string;
   assignees: Collaborator[];
   tasks: Task[];
+  phases?: Phase[];
+  instructions?: string;
 }
 
 export interface ScheduleEvent {
@@ -112,6 +114,95 @@ export interface AgencyScoreEntry {
   calculatedAt: string;
 }
 
+// ===== MISSION CONTROL TYPES =====
+
+export type PhaseStatus = 'not-started' | 'in-progress' | 'blocked' | 'complete';
+export type StepStatus = 'not-started' | 'in-progress' | 'blocked' | 'complete' | 'skipped';
+
+export interface PhaseStep {
+  id: string;
+  title: string;
+  description?: string;
+  status: StepStatus;
+  assignees: Collaborator[];
+  notes?: string;
+  completedAt?: string;
+}
+
+export interface Phase {
+  id: string;
+  number: number;
+  name: string;
+  description: string;
+  status: PhaseStatus;
+  steps: PhaseStep[];
+  prerequisites: string[];
+  validationGate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  instructions?: string;
+  checklistInstructions?: string;
+}
+
+export interface Workstream {
+  collaborator: Collaborator;
+  currentFocus: string;
+  currentPhaseId?: string;
+  blockers: string[];
+  lastUpdate: string;
+}
+
+export interface Checkpoint {
+  id: string;
+  title: string;
+  phaseId: string;
+  targetDate?: string;
+  isComplete: boolean;
+  notes?: string;
+}
+
+export interface DiscoveryItem {
+  id: string;
+  question: string;
+  answer?: string;
+  category: string;
+  status: 'open' | 'answered' | 'deferred';
+  assignees: Collaborator[];
+  createdAt: string;
+}
+
+export interface Risk {
+  id: string;
+  description: string;
+  severity: Priority;
+  phaseId?: string;
+  mitigation?: string;
+  isResolved: boolean;
+}
+
+export interface MissionControl {
+  phases: Phase[];
+  workstreams: Workstream[];
+  checkpoints: Checkpoint[];
+  discoveryItems: DiscoveryItem[];
+  risks: Risk[];
+  currentPhaseId: string;
+}
+
+export function createDefaultPhases(): Phase[] {
+  return [
+    { id: 'phase-1', number: 1, name: 'Discovery & Context Gathering', description: 'Gather brand context, platform status, assets, tool constraints, workflow preferences, and client packaging requirements.', status: 'not-started', steps: [], prerequisites: [], validationGate: 'Discovery summary produced with business overview, marketing objective, platform scope, assets, assumptions, constraints, risks, and recommended design direction.' },
+    { id: 'phase-2', number: 2, name: 'Architecture & Design Direction', description: 'Define system architecture layers: content intelligence, generation, approval, scheduling, analytics, feedback, abstraction, logging, packaging, and mission control.', status: 'not-started', steps: [], prerequisites: ['phase-1'], validationGate: 'Architecture document with all layers defined including purpose, inputs, outputs, dependencies, failure points, and swapability.' },
+    { id: 'phase-3', number: 3, name: 'Tooling Evaluation and Selection', description: 'Evaluate and select specific tools for each architecture layer based on reliability, cost, flexibility, and integration requirements.', status: 'not-started', steps: [], prerequisites: ['phase-2'], validationGate: 'Tool selection matrix with chosen tools, fallbacks, and rationale for each layer.' },
+    { id: 'phase-4', number: 4, name: 'Content System Design', description: 'Design content intelligence and generation pipeline including industry customization, platform-specific formatting, hooks, CTAs, and variations.', status: 'not-started', steps: [], prerequisites: ['phase-3'], validationGate: 'Content pipeline specification with generation flow, industry templates, platform adapters, and variation system.' },
+    { id: 'phase-5', number: 5, name: 'Approval & Human-in-the-Loop Workflow', description: 'Design approval workflow with approve/edit/reject/regenerate flow, rejection reason capture, and feedback learning loop.', status: 'not-started', steps: [], prerequisites: ['phase-4'], validationGate: 'Approval system design with UX flow, edit/reject capture, regeneration logic, and feedback integration.' },
+    { id: 'phase-6', number: 6, name: 'Scheduling & Publishing Workflow', description: 'Design automated scheduling and publishing pipeline with optimal timing, platform API integration, and queue management.', status: 'not-started', steps: [], prerequisites: ['phase-5'], validationGate: 'Publishing pipeline specification with scheduling logic, platform connectors, and queue management.' },
+    { id: 'phase-7', number: 7, name: 'Analytics, Reporting & Self-Improvement', description: 'Design analytics collection, weekly reporting, performance feedback loops, content optimization, and self-improvement logic.', status: 'not-started', steps: [], prerequisites: ['phase-6'], validationGate: 'Analytics system design with metrics, reporting templates, feedback loops, and optimization rules.' },
+    { id: 'phase-8', number: 8, name: 'Model Abstraction & Reliability', description: 'Design model/tool abstraction layer for provider swapping, fallback workflows, dependency isolation, and minimal lock-in.', status: 'not-started', steps: [], prerequisites: ['phase-3'], validationGate: 'Abstraction layer spec with provider interfaces, swap procedures, and fallback workflows.' },
+    { id: 'phase-9', number: 9, name: 'Packaging & Client Reusability', description: 'Design multi-tenant packaging for client deployment including tenant isolation, configuration, access control, and subscription readiness.', status: 'not-started', steps: [], prerequisites: ['phase-7'], validationGate: 'Packaging design with tenant model, configuration schema, onboarding flow, and access control.' },
+    { id: 'phase-10', number: 10, name: 'Documentation, Hours & Handoff', description: 'Produce final documentation, hours estimate structure, knowledge base, IP protection notes, and immediate execution plan.', status: 'not-started', steps: [], prerequisites: ['phase-9'], validationGate: 'Complete documentation package with implementation guide, hours estimate, and day-1 execution plan.' },
+  ];
+}
 
 export interface VoltraContext {
   lastUpdated: string;
@@ -132,13 +223,27 @@ export interface VoltraContext {
   activityLog: ActivityLogEntry[];
   agencyScores: AgencyScoreEntry[];
   scheduleEvents: ScheduleEvent[];
+  missionControl: MissionControl;
 }
 
 // Default context — update this as your needs evolve
 export const defaultContext: VoltraContext = {
   lastUpdated: new Date().toISOString(),
   notionConnected: false,
-  projects: [],
+  projects: [
+    {
+      id: 'social-media-automation',
+      name: 'Social Media Automation',
+      category: 'growth',
+      status: 'active',
+      progress: 0,
+      notes: 'End-to-end automated social media marketing solution for Voltra. Starting with Facebook and LinkedIn, designed to be packageable for future clients.',
+      assignees: ['Aidan', 'Luke'],
+      tasks: [],
+      phases: createDefaultPhases(),
+      lastTouched: new Date().toISOString(),
+    },
+  ],
   dailyPlan: [],
   weeklyGoals: [],
   reminders: [], // Synced from iOS Shortcuts
@@ -163,4 +268,26 @@ export const defaultContext: VoltraContext = {
   activityLog: [],
   agencyScores: [],
   scheduleEvents: [],
+  missionControl: {
+    currentPhaseId: 'phase-1',
+    phases: [
+      { id: 'phase-1', number: 1, name: 'Discovery & Context Gathering', description: 'Gather brand context, platform status, assets, tool constraints, workflow preferences, and client packaging requirements.', status: 'not-started', steps: [], prerequisites: [], validationGate: 'Discovery summary produced with business overview, marketing objective, platform scope, assets, assumptions, constraints, risks, and recommended design direction.' },
+      { id: 'phase-2', number: 2, name: 'Architecture & Design Direction', description: 'Define system architecture layers: content intelligence, generation, approval, scheduling, analytics, feedback, abstraction, logging, packaging, and mission control.', status: 'not-started', steps: [], prerequisites: ['phase-1'], validationGate: 'Architecture document with all layers defined including purpose, inputs, outputs, dependencies, failure points, and swapability.' },
+      { id: 'phase-3', number: 3, name: 'Tooling Evaluation and Selection', description: 'Evaluate and select specific tools for each architecture layer based on reliability, cost, flexibility, and integration requirements.', status: 'not-started', steps: [], prerequisites: ['phase-2'], validationGate: 'Tool selection matrix with chosen tools, fallbacks, and rationale for each layer.' },
+      { id: 'phase-4', number: 4, name: 'Content System Design', description: 'Design content intelligence and generation pipeline including industry customization, platform-specific formatting, hooks, CTAs, and variations.', status: 'not-started', steps: [], prerequisites: ['phase-3'], validationGate: 'Content pipeline specification with generation flow, industry templates, platform adapters, and variation system.' },
+      { id: 'phase-5', number: 5, name: 'Approval & Human-in-the-Loop Workflow', description: 'Design approval workflow with approve/edit/reject/regenerate flow, rejection reason capture, and feedback learning loop.', status: 'not-started', steps: [], prerequisites: ['phase-4'], validationGate: 'Approval system design with UX flow, edit/reject capture, regeneration logic, and feedback integration.' },
+      { id: 'phase-6', number: 6, name: 'Scheduling & Publishing Workflow', description: 'Design automated scheduling and publishing pipeline with optimal timing, platform API integration, and queue management.', status: 'not-started', steps: [], prerequisites: ['phase-5'], validationGate: 'Publishing pipeline specification with scheduling logic, platform connectors, and queue management.' },
+      { id: 'phase-7', number: 7, name: 'Analytics, Reporting & Self-Improvement', description: 'Design analytics collection, weekly reporting, performance feedback loops, content optimization, and self-improvement logic.', status: 'not-started', steps: [], prerequisites: ['phase-6'], validationGate: 'Analytics system design with metrics, reporting templates, feedback loops, and optimization rules.' },
+      { id: 'phase-8', number: 8, name: 'Model Abstraction & Reliability', description: 'Design model/tool abstraction layer for provider swapping, fallback workflows, dependency isolation, and minimal lock-in.', status: 'not-started', steps: [], prerequisites: ['phase-3'], validationGate: 'Abstraction layer spec with provider interfaces, swap procedures, and fallback workflows.' },
+      { id: 'phase-9', number: 9, name: 'Packaging & Client Reusability', description: 'Design multi-tenant packaging for client deployment including tenant isolation, configuration, access control, and subscription readiness.', status: 'not-started', steps: [], prerequisites: ['phase-7'], validationGate: 'Packaging design with tenant model, configuration schema, onboarding flow, and access control.' },
+      { id: 'phase-10', number: 10, name: 'Documentation, Hours & Handoff', description: 'Produce final documentation, hours estimate structure, knowledge base, IP protection notes, and immediate execution plan.', status: 'not-started', steps: [], prerequisites: ['phase-9'], validationGate: 'Complete documentation package with implementation guide, hours estimate, and day-1 execution plan.' },
+    ],
+    workstreams: [
+      { collaborator: 'Aidan', currentFocus: '', currentPhaseId: 'phase-1', blockers: [], lastUpdate: new Date().toISOString() },
+      { collaborator: 'Luke', currentFocus: '', currentPhaseId: 'phase-1', blockers: [], lastUpdate: new Date().toISOString() },
+    ],
+    checkpoints: [],
+    discoveryItems: [],
+    risks: [],
+  },
 };
