@@ -125,8 +125,6 @@ export default function Overview() {
   const doneGoals = ctx.weeklyGoals.filter(g => g.done).length;
   const totalGoals = ctx.weeklyGoals.length;
   const highPriorityGoals = ctx.weeklyGoals.filter(g => g.priority === 'high' && !g.done).length;
-  const activeReminders = ctx.reminders?.filter(r => !r.isCompleted).length || 0;
-  const highPriorityReminders = ctx.reminders?.filter(r => !r.isCompleted && (r.priority ?? 0) >= 5).length || 0;
 
   return (
     <main className="page-container overview-page">
@@ -253,18 +251,6 @@ export default function Overview() {
           <span className="nav-card-label">Clients</span>
           <span className="nav-card-count">{ctx.jobSearch.activeConversations.length} active</span>
           <span className="nav-card-detail">{ctx.jobSearch.applicationsThisWeek} contacts this week</span>
-        </Link>
-
-        <Link href="/reminders" className="nav-card">
-          <div className="nav-card-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-          </div>
-          <span className="nav-card-label">Reminders</span>
-          <span className="nav-card-count">{activeReminders} active</span>
-          <span className="nav-card-detail">{highPriorityReminders > 0 ? `${highPriorityReminders} high priority` : 'None urgent'}</span>
         </Link>
 
         <Link href="/log" className="nav-card">

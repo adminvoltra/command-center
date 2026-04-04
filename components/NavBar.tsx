@@ -9,8 +9,8 @@ const navItems = [
   { href: '/goals', label: 'Goals' },
   { href: '/schedule', label: 'Schedule' },
   { href: '/jobs', label: 'Clients' },
-  { href: '/reminders', label: 'Reminders' },
   { href: '/log', label: 'Work Log' },
+  { href: '/todos', label: 'Todos' },
   { href: '/experiments', label: 'AI Lab' },
 ];
 

@@ -1,23 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import type { Goal } from '@/lib/context';
+import { useState, useMemo } from 'react';
+import type { Goal, Collaborator } from '@/lib/context';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
+import CollaboratorPicker, { CollaboratorBadges } from '@/components/CollaboratorPicker';
 
 type Priority = 'high' | 'medium' | 'low';
+type GoalTab = 'overview' | 'Luke' | 'Aidan';
 
 const emptyGoal: Omit<Goal, 'id'> = {
   text: '',
   priority: 'medium',
   done: false,
+  assignees: [],
 };
 
 export default function GoalsPage() {
   const { ctx, save, saveWithActivity, isLoading } = useAppContext();
+  const [activeTab, setActiveTab] = useState<GoalTab>('overview');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [editPriority, setEditPriority] = useState<Priority>('medium');
+  const [editAssignees, setEditAssignees] = useState<Collaborator[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newGoal, setNewGoal] = useState<Omit<Goal, 'id'>>(emptyGoal);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -29,6 +34,12 @@ export default function GoalsPage() {
       </main>
     );
   }
+
+  // Filter goals by tab
+  const filteredGoals = useMemo(() => {
+    if (activeTab === 'overview') return ctx.weeklyGoals;
+    return ctx.weeklyGoals.filter(g => (g.assignees || []).includes(activeTab as Collaborator));
+  }, [ctx.weeklyGoals, activeTab]);
 
   // CREATE
   const addGoal = () => {
@@ -45,11 +56,10 @@ export default function GoalsPage() {
     setIsAddModalOpen(false);
   };
 
-  // UPDATE - toggle done
+  // Toggle done
   const toggleGoal = (id: string) => {
     const goal = ctx.weeklyGoals.find(g => g.id === id);
     if (!goal) return;
-
     const newDoneState = !goal.done;
     const updatedCtx = {
       ...ctx,
@@ -57,34 +67,32 @@ export default function GoalsPage() {
         g.id === id ? { ...g, done: newDoneState } : g
       ),
     };
-
     if (newDoneState) {
-      // Goal completed - log activity
       saveWithActivity(updatedCtx, {
         type: 'goal_completed',
         description: `Completed goal: "${goal.text}"`,
         metadata: { priority: goal.priority, goalId: id }
       });
     } else {
-      // Goal uncompleted - just save without logging
       save(updatedCtx);
     }
   };
 
-  // UPDATE - start editing
+  // Start editing
   const startEdit = (goal: Goal) => {
     setEditingId(goal.id);
     setEditText(goal.text);
     setEditPriority(goal.priority);
+    setEditAssignees(goal.assignees || []);
   };
 
-  // UPDATE - save edit
+  // Save edit
   const saveEdit = () => {
     if (!editText.trim() || !editingId) return;
     save({
       ...ctx,
       weeklyGoals: ctx.weeklyGoals.map((g: Goal) =>
-        g.id === editingId ? { ...g, text: editText, priority: editPriority } : g
+        g.id === editingId ? { ...g, text: editText, priority: editPriority, assignees: editAssignees } : g
       ),
     });
     setEditingId(null);
@@ -97,16 +105,20 @@ export default function GoalsPage() {
     setEditingId(null);
   };
 
-  const doneCount = ctx.weeklyGoals.filter(g => g.done).length;
-  const totalCount = ctx.weeklyGoals.length;
+  const doneCount = filteredGoals.filter(g => g.done).length;
+  const totalCount = filteredGoals.length;
   const progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
-  // Sort goals: incomplete first, then by priority
+  // Sort goals
   const priorityOrder = { high: 0, medium: 1, low: 2 };
-  const sortedGoals = [...ctx.weeklyGoals].sort((a, b) => {
+  const sortedGoals = [...filteredGoals].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
+
+  // Tab counts
+  const lukeCount = ctx.weeklyGoals.filter(g => (g.assignees || []).includes('Luke')).length;
+  const aidanCount = ctx.weeklyGoals.filter(g => (g.assignees || []).includes('Aidan')).length;
 
   return (
     <main className="page-container">
@@ -122,6 +134,28 @@ export default function GoalsPage() {
         </button>
       </div>
 
+      {/* Tabs */}
+      <div className="schedule-tabs" style={{ marginBottom: 'var(--space-lg)' }}>
+        <button className={`schedule-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+          Overview ({ctx.weeklyGoals.length})
+        </button>
+        <button
+          className={`schedule-tab ${activeTab === 'Luke' ? 'active' : ''}`}
+          onClick={() => setActiveTab('Luke')}
+          style={activeTab === 'Luke' ? { background: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24', borderColor: '#fbbf24' } : {}}
+        >
+          Luke ({lukeCount})
+        </button>
+        <button
+          className={`schedule-tab ${activeTab === 'Aidan' ? 'active' : ''}`}
+          onClick={() => setActiveTab('Aidan')}
+          style={activeTab === 'Aidan' ? { background: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa', borderColor: '#60a5fa' } : {}}
+        >
+          Aidan ({aidanCount})
+        </button>
+      </div>
+
+      {/* Progress bar */}
       <div className="card" style={{ marginBottom: 'var(--space-2xl)' }}>
         <div style={{ marginBottom: 'var(--space-md)' }}>
           <div className="progress-bar" style={{ height: 8 }}>
@@ -134,6 +168,7 @@ export default function GoalsPage() {
         </div>
       </div>
 
+      {/* Goal list */}
       <div className="goal-list">
         {sortedGoals.map((goal: Goal) => (
           <div key={goal.id} className={`goal-item ${goal.done ? 'done' : ''}`}>
@@ -159,6 +194,10 @@ export default function GoalsPage() {
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
                 </select>
+                <div style={{ marginTop: 'var(--space-sm)' }}>
+                  <label style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4, display: 'block' }}>Assignees</label>
+                  <CollaboratorPicker selected={editAssignees} onChange={setEditAssignees} />
+                </div>
                 <div className="goal-edit-actions">
                   <button className="btn btn-small" onClick={saveEdit}>Save</button>
                   <button className="btn btn-small" onClick={() => setEditingId(null)}>Cancel</button>
@@ -167,15 +206,16 @@ export default function GoalsPage() {
               </div>
             ) : (
               <>
-                <button
-                  className="goal-check"
-                  onClick={() => toggleGoal(goal.id)}
-                  type="button"
-                >
+                <button className="goal-check" onClick={() => toggleGoal(goal.id)} type="button">
                   {goal.done ? '✓' : ''}
                 </button>
                 <div className="goal-content" onClick={() => startEdit(goal)} style={{ cursor: 'pointer', flex: 1 }}>
                   <span className="goal-text">{goal.text}</span>
+                  {(goal.assignees || []).length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      <CollaboratorBadges assignees={goal.assignees || []} />
+                    </div>
+                  )}
                 </div>
                 <div className={`priority-pip priority-${goal.priority}`} title={goal.priority} />
               </>
@@ -183,26 +223,10 @@ export default function GoalsPage() {
           </div>
         ))}
         {sortedGoals.length === 0 && (
-          <div className="empty-state">No goals yet. Add one to get started.</div>
+          <div className="empty-state">
+            {activeTab === 'overview' ? 'No goals yet. Add one to get started.' : `No goals assigned to ${activeTab} yet.`}
+          </div>
         )}
-      </div>
-
-      <div style={{ marginTop: 'var(--space-2xl)', padding: 'var(--space-lg)', background: 'var(--surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', gap: 'var(--space-lg)', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Priority Legend:</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div className="priority-pip priority-high" />
-            <span style={{ fontSize: 13, color: 'var(--text-2)' }}>High</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div className="priority-pip priority-medium" />
-            <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Medium</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div className="priority-pip priority-low" />
-            <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Low</span>
-          </div>
-        </div>
       </div>
 
       {/* Add Goal Modal */}
@@ -217,9 +241,7 @@ export default function GoalsPage() {
               className="edit-input"
               placeholder="What do you want to accomplish?"
               autoFocus
-              onKeyDown={e => {
-                if (e.key === 'Enter' && newGoal.text.trim()) addGoal();
-              }}
+              onKeyDown={e => { if (e.key === 'Enter' && newGoal.text.trim()) addGoal(); }}
             />
           </div>
           <div className="edit-row">
@@ -234,29 +256,25 @@ export default function GoalsPage() {
               <option value="low">Low</option>
             </select>
           </div>
+          <div className="edit-row">
+            <label>Assignees</label>
+            <CollaboratorPicker selected={newGoal.assignees || []} onChange={assignees => setNewGoal({ ...newGoal, assignees })} />
+          </div>
           <div className="modal-actions">
-            <button className="btn" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
-            </button>
-            <button className="btn btn-primary" onClick={addGoal} disabled={!newGoal.text.trim()}>
-              Add Goal
-            </button>
+            <button className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={addGoal} disabled={!newGoal.text.trim()}>Add Goal</button>
           </div>
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation */}
       <Modal isOpen={deleteConfirm !== null} onClose={() => setDeleteConfirm(null)} title="Delete Goal">
         <p style={{ marginBottom: 'var(--space-xl)', color: 'var(--text-2)' }}>
           Are you sure you want to delete this goal? This cannot be undone.
         </p>
         <div className="modal-actions">
-          <button className="btn" onClick={() => setDeleteConfirm(null)}>
-            Cancel
-          </button>
-          <button className="btn btn-danger" onClick={() => deleteConfirm && deleteGoal(deleteConfirm)}>
-            Delete
-          </button>
+          <button className="btn" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+          <button className="btn btn-danger" onClick={() => deleteConfirm && deleteGoal(deleteConfirm)}>Delete</button>
         </div>
       </Modal>
     </main>

@@ -1,24 +1,63 @@
 'use client';
 
-import { useState } from 'react';
-import type { DailyBlock } from '@/lib/context';
+import { useState, useMemo } from 'react';
+import {
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  eachDayOfInterval, format, addMonths, subMonths,
+  addWeeks, subWeeks, isSameMonth, isSameDay, isToday,
+} from 'date-fns';
+import type { ScheduleEvent, Collaborator } from '@/lib/context';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
+import CollaboratorPicker, { CollaboratorBadges } from '@/components/CollaboratorPicker';
 
-const emptyBlock: Omit<DailyBlock, 'id'> = {
-  time: '09:00',
-  label: '',
-  duration: '1 hour',
+type ViewMode = 'monthly' | 'weekly';
+
+const emptyEvent: Omit<ScheduleEvent, 'id'> = {
+  title: '',
+  date: format(new Date(), 'yyyy-MM-dd'),
+  startTime: '09:00',
+  endTime: '10:00',
+  assignees: [],
   notes: '',
 };
 
 export default function SchedulePage() {
   const { ctx, save, isLoading } = useAppContext();
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editDraft, setEditDraft] = useState<DailyBlock | null>(null);
+  const [view, setView] = useState<ViewMode>('monthly');
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newBlock, setNewBlock] = useState<Omit<DailyBlock, 'id'>>(emptyBlock);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [newEvent, setNewEvent] = useState<Omit<ScheduleEvent, 'id'>>(emptyEvent);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [collabFilter, setCollabFilter] = useState<string>('all');
+
+  const allEvents = ctx.scheduleEvents || [];
+  const events = collabFilter === 'all'
+    ? allEvents
+    : allEvents.filter(e => e.assignees.includes(collabFilter as Collaborator));
+
+  // Month view days
+  const monthDays = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const calStart = startOfWeek(monthStart);
+    const calEnd = endOfWeek(monthEnd);
+    return eachDayOfInterval({ start: calStart, end: calEnd });
+  }, [currentDate]);
+
+  // Week view days
+  const weekDays = useMemo(() => {
+    const weekStart = startOfWeek(currentDate);
+    const weekEnd = endOfWeek(currentDate);
+    return eachDayOfInterval({ start: weekStart, end: weekEnd });
+  }, [currentDate]);
+
+  const getEventsForDate = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return events.filter(e => e.date === dateStr);
+  };
 
   if (isLoading) {
     return (
@@ -28,221 +67,291 @@ export default function SchedulePage() {
     );
   }
 
-  // CREATE
-  const addBlock = () => {
-    if (!newBlock.label.trim()) return;
-    const updatedPlan = [...ctx.dailyPlan, newBlock];
-    // Sort by time
-    updatedPlan.sort((a, b) => a.time.localeCompare(b.time));
-    save({ ...ctx, dailyPlan: updatedPlan });
-    setNewBlock(emptyBlock);
+  // CRUD
+  const addEvent = () => {
+    if (!newEvent.title.trim()) return;
+    const event: ScheduleEvent = { ...newEvent, id: Date.now().toString() };
+    save({ ...ctx, scheduleEvents: [...events, event] });
+    setNewEvent(emptyEvent);
     setIsAddModalOpen(false);
   };
 
-  // Start editing - copy block to draft
-  const startEditing = (index: number) => {
-    setEditingIndex(index);
-    setEditDraft({ ...ctx.dailyPlan[index] });
+  const saveEvent = () => {
+    if (!editingEvent) return;
+    save({
+      ...ctx,
+      scheduleEvents: events.map(e => e.id === editingEvent.id ? editingEvent : e),
+    });
+    setEditingEvent(null);
   };
 
-  // Update draft (local only, no save)
-  const updateDraft = (updates: Partial<DailyBlock>) => {
-    if (!editDraft) return;
-    setEditDraft({ ...editDraft, ...updates });
-  };
-
-  // SAVE - commit draft to context
-  const saveBlock = () => {
-    if (editingIndex === null || !editDraft) return;
-    const updatedPlan = ctx.dailyPlan.map((block, i) =>
-      i === editingIndex ? editDraft : block
-    );
-    // Sort by time
-    updatedPlan.sort((a, b) => a.time.localeCompare(b.time));
-    save({ ...ctx, dailyPlan: updatedPlan });
-    setEditingIndex(null);
-    setEditDraft(null);
-  };
-
-  // Cancel editing
-  const cancelEditing = () => {
-    setEditingIndex(null);
-    setEditDraft(null);
-  };
-
-  // DELETE
-  const deleteBlock = (index: number) => {
-    save({ ...ctx, dailyPlan: ctx.dailyPlan.filter((_, i) => i !== index) });
+  const deleteEvent = (id: string) => {
+    save({ ...ctx, scheduleEvents: events.filter(e => e.id !== id) });
     setDeleteConfirm(null);
-    setEditingIndex(null);
+    setEditingEvent(null);
+    setSelectedDate(null);
   };
+
+  const openAddForDate = (date: Date) => {
+    setNewEvent({ ...emptyEvent, date: format(date, 'yyyy-MM-dd') });
+    setIsAddModalOpen(true);
+  };
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7am - 8pm
+
+  // Events for selected date panel
+  const selectedDateEvents = selectedDate
+    ? events.filter(e => e.date === selectedDate).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
+    : [];
 
   return (
     <main className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Daily Schedule</h1>
+          <h1 className="page-title">Schedule</h1>
           <p className="page-subtitle">
-            Your baseline daily plan with {ctx.dailyPlan.length} time blocks
+            {events.length} events scheduled
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
-          + Add Block
-        </button>
-      </div>
-
-      <div className="card">
-        <div className="timeline">
-          {ctx.dailyPlan.map((block: DailyBlock, index: number) => {
-            const isEditing = editingIndex === index;
-            const draft = isEditing && editDraft ? editDraft : block;
-
-            return (
-            <div key={`${block.time}-${index}`} className={`timeline-item ${isEditing ? 'editing' : ''}`}>
-              {isEditing && editDraft ? (
-                <div className="timeline-edit-form">
-                  <div className="edit-row-group">
-                    <div className="edit-row">
-                      <label>Time</label>
-                      <input
-                        type="time"
-                        value={draft.time}
-                        onChange={e => updateDraft({ time: e.target.value })}
-                        className="edit-input"
-                      />
-                    </div>
-                    <div className="edit-row">
-                      <label>Duration</label>
-                      <input
-                        type="text"
-                        value={draft.duration}
-                        onChange={e => updateDraft({ duration: e.target.value })}
-                        className="edit-input"
-                        placeholder="e.g. 2 hours"
-                      />
-                    </div>
-                  </div>
-                  <div className="edit-row">
-                    <label>Activity</label>
-                    <input
-                      type="text"
-                      value={draft.label}
-                      onChange={e => updateDraft({ label: e.target.value })}
-                      className="edit-input"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="edit-row">
-                    <label>Notes</label>
-                    <input
-                      type="text"
-                      value={draft.notes || ''}
-                      onChange={e => updateDraft({ notes: e.target.value })}
-                      className="edit-input"
-                      placeholder="Optional details"
-                    />
-                  </div>
-                  <div className="edit-actions">
-                    <button className="btn btn-small btn-primary" onClick={saveBlock}>
-                      Save
-                    </button>
-                    <button className="btn btn-small" onClick={cancelEditing}>
-                      Cancel
-                    </button>
-                    <button className="btn btn-small btn-danger" onClick={() => setDeleteConfirm(index)}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="timeline-time">{block.time}</div>
-                  <div className="timeline-marker" />
-                  <div className="timeline-content" onClick={() => startEditing(index)} style={{ cursor: 'pointer' }}>
-                    <div className="timeline-label">{block.label}</div>
-                    <div className="timeline-duration">{block.duration}</div>
-                    {block.notes && <div className="timeline-notes">{block.notes}</div>}
-                    <div className="card-edit-hint">Click to edit</div>
-                  </div>
-                </>
-              )}
-            </div>
-          );
-          })}
-          {ctx.dailyPlan.length === 0 && (
-            <div className="empty-state">No schedule blocks yet. Add one to get started.</div>
-          )}
+        <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <button className="btn btn-primary" onClick={() => { setNewEvent(emptyEvent); setIsAddModalOpen(true); }}>
+            + Add Event
+          </button>
         </div>
       </div>
 
-      {/* Add Block Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Time Block">
+      {/* View Tabs + Filter */}
+      <div className="schedule-tabs">
+        <button className={`schedule-tab ${view === 'monthly' ? 'active' : ''}`} onClick={() => setView('monthly')}>Monthly</button>
+        <button className={`schedule-tab ${view === 'weekly' ? 'active' : ''}`} onClick={() => setView('weekly')}>Weekly</button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Filter:</span>
+          <button className={`collab-chip ${collabFilter === 'all' ? 'selected' : ''}`} style={collabFilter === 'all' ? { background: 'var(--surface-2)', color: 'var(--text-1)', borderColor: 'var(--text-3)' } : {}} onClick={() => setCollabFilter('all')}>All</button>
+          <button className={`collab-chip collab-chip-luke ${collabFilter === 'Luke' ? 'selected' : ''}`} onClick={() => setCollabFilter(collabFilter === 'Luke' ? 'all' : 'Luke')}>Luke</button>
+          <button className={`collab-chip collab-chip-aidan ${collabFilter === 'Aidan' ? 'selected' : ''}`} onClick={() => setCollabFilter(collabFilter === 'Aidan' ? 'all' : 'Aidan')}>Aidan</button>
+        </div>
+      </div>
+
+      {/* Calendar Navigation */}
+      <div className="calendar-nav">
+        <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1))}>
+          ← Prev
+        </button>
+        <h2 className="calendar-title">
+          {view === 'monthly'
+            ? format(currentDate, 'MMMM yyyy')
+            : `Week of ${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`
+          }
+        </h2>
+        <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <button className="btn btn-small" onClick={() => setCurrentDate(new Date())}>Today</button>
+          <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? addMonths(currentDate, 1) : addWeeks(currentDate, 1))}>
+            Next →
+          </button>
+        </div>
+      </div>
+
+      {/* Monthly View */}
+      {view === 'monthly' && (
+        <div className="calendar-month">
+          {dayNames.map(day => (
+            <div key={day} className="calendar-day-header">{day}</div>
+          ))}
+          {monthDays.map(day => {
+            const dayEvents = getEventsForDate(day);
+            const dateStr = format(day, 'yyyy-MM-dd');
+            return (
+              <div
+                key={dateStr}
+                className={`calendar-day ${!isSameMonth(day, currentDate) ? 'other-month' : ''} ${isToday(day) ? 'today' : ''} ${selectedDate === dateStr ? 'selected' : ''}`}
+                onClick={() => setSelectedDate(dateStr === selectedDate ? null : dateStr)}
+                onDoubleClick={() => openAddForDate(day)}
+              >
+                <div className="calendar-day-number">{format(day, 'd')}</div>
+                <div className="calendar-day-events">
+                  {dayEvents.slice(0, 3).map(ev => (
+                    <div key={ev.id} className="calendar-event-chip" onClick={e => { e.stopPropagation(); setEditingEvent(ev); }}>
+                      {ev.startTime && <span className="event-time">{ev.startTime}</span>}
+                      <span>{ev.title}</span>
+                    </div>
+                  ))}
+                  {dayEvents.length > 3 && (
+                    <div className="calendar-event-more">+{dayEvents.length - 3} more</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Weekly View */}
+      {view === 'weekly' && (
+        <div className="calendar-week">
+          {/* Header row */}
+          <div className="week-header-spacer" />
+          {weekDays.map(day => (
+            <div key={format(day, 'yyyy-MM-dd')} className={`week-day-header ${isToday(day) ? 'today' : ''}`}>
+              <span className="week-day-name">{format(day, 'EEE')}</span>
+              <span className="week-day-num">{format(day, 'd')}</span>
+            </div>
+          ))}
+
+          {/* Time rows */}
+          {hours.map(hour => (
+            <div key={hour} className="week-time-row">
+              <div className="week-time-label">{hour > 12 ? `${hour - 12}pm` : hour === 12 ? '12pm' : `${hour}am`}</div>
+              {weekDays.map(day => {
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const hourStr = hour.toString().padStart(2, '0');
+                const hourEvents = events.filter(e =>
+                  e.date === dateStr && e.startTime && e.startTime.startsWith(hourStr)
+                );
+                return (
+                  <div
+                    key={`${dateStr}-${hour}`}
+                    className={`week-cell ${isToday(day) ? 'today' : ''}`}
+                    onDoubleClick={() => {
+                      setNewEvent({ ...emptyEvent, date: dateStr, startTime: `${hourStr}:00`, endTime: `${(hour + 1).toString().padStart(2, '0')}:00` });
+                      setIsAddModalOpen(true);
+                    }}
+                  >
+                    {hourEvents.map(ev => (
+                      <div key={ev.id} className="week-event" onClick={() => setEditingEvent(ev)}>
+                        <span className="week-event-title">{ev.title}</span>
+                        <CollaboratorBadges assignees={ev.assignees} />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Selected Date Detail Panel */}
+      {selectedDate && view === 'monthly' && (
+        <div className="day-detail-panel">
+          <div className="day-detail-header">
+            <h3>{format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMMM d, yyyy')}</h3>
+            <button className="btn btn-small btn-primary" onClick={() => openAddForDate(new Date(selectedDate + 'T12:00:00'))}>+ Add</button>
+          </div>
+          {selectedDateEvents.length === 0 ? (
+            <p className="empty-state">No events. Double-click a day or click + Add.</p>
+          ) : (
+            <div className="day-detail-events">
+              {selectedDateEvents.map(ev => (
+                <div key={ev.id} className="day-event-card" onClick={() => setEditingEvent(ev)}>
+                  <div className="day-event-time">
+                    {ev.startTime && ev.endTime ? `${ev.startTime} – ${ev.endTime}` : ev.startTime || 'All day'}
+                  </div>
+                  <div className="day-event-title">{ev.title}</div>
+                  <CollaboratorBadges assignees={ev.assignees} />
+                  {ev.notes && <div className="day-event-notes">{ev.notes}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Event Modal */}
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Event">
         <div className="edit-form">
+          <div className="edit-row">
+            <label>Title *</label>
+            <input type="text" value={newEvent.title} onChange={e => setNewEvent({ ...newEvent, title: e.target.value })} className="edit-input" placeholder="Event title" autoFocus />
+          </div>
+          <div className="edit-row">
+            <label>Date *</label>
+            <input type="date" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} className="edit-input" />
+          </div>
           <div className="edit-row-group">
             <div className="edit-row">
-              <label>Time *</label>
-              <input
-                type="time"
-                value={newBlock.time}
-                onChange={e => setNewBlock({ ...newBlock, time: e.target.value })}
-                className="edit-input"
-              />
+              <label>Start Time</label>
+              <input type="time" value={newEvent.startTime} onChange={e => setNewEvent({ ...newEvent, startTime: e.target.value })} className="edit-input" />
             </div>
             <div className="edit-row">
-              <label>Duration</label>
-              <input
-                type="text"
-                value={newBlock.duration}
-                onChange={e => setNewBlock({ ...newBlock, duration: e.target.value })}
-                className="edit-input"
-                placeholder="e.g. 2 hours"
-              />
+              <label>End Time</label>
+              <input type="time" value={newEvent.endTime} onChange={e => setNewEvent({ ...newEvent, endTime: e.target.value })} className="edit-input" />
             </div>
           </div>
           <div className="edit-row">
-            <label>Activity *</label>
-            <input
-              type="text"
-              value={newBlock.label}
-              onChange={e => setNewBlock({ ...newBlock, label: e.target.value })}
-              className="edit-input"
-              placeholder="What will you work on?"
-              autoFocus
-            />
+            <label>Assignees</label>
+            <CollaboratorPicker selected={newEvent.assignees} onChange={assignees => setNewEvent({ ...newEvent, assignees })} />
+          </div>
+          <div className="edit-row">
+            <label>Project</label>
+            <select value={newEvent.projectId || ''} onChange={e => setNewEvent({ ...newEvent, projectId: e.target.value || undefined })} className="edit-select">
+              <option value="">No project</option>
+              {ctx.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
           </div>
           <div className="edit-row">
             <label>Notes</label>
-            <input
-              type="text"
-              value={newBlock.notes || ''}
-              onChange={e => setNewBlock({ ...newBlock, notes: e.target.value })}
-              className="edit-input"
-              placeholder="Optional details"
-            />
+            <textarea value={newEvent.notes || ''} onChange={e => setNewEvent({ ...newEvent, notes: e.target.value })} className="edit-textarea" rows={2} />
           </div>
           <div className="modal-actions">
-            <button className="btn" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
-            </button>
-            <button className="btn btn-primary" onClick={addBlock} disabled={!newBlock.label.trim()}>
-              Add Block
-            </button>
+            <button className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={addEvent} disabled={!newEvent.title.trim()}>Add Event</button>
           </div>
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal isOpen={deleteConfirm !== null} onClose={() => setDeleteConfirm(null)} title="Delete Time Block">
-        <p style={{ marginBottom: 'var(--space-xl)', color: 'var(--text-2)' }}>
-          Are you sure you want to delete this time block? This cannot be undone.
-        </p>
+      {/* Edit Event Modal */}
+      <Modal isOpen={editingEvent !== null} onClose={() => setEditingEvent(null)} title="Edit Event">
+        {editingEvent && (
+          <div className="edit-form">
+            <div className="edit-row">
+              <label>Title</label>
+              <input type="text" value={editingEvent.title} onChange={e => setEditingEvent({ ...editingEvent, title: e.target.value })} className="edit-input" />
+            </div>
+            <div className="edit-row">
+              <label>Date</label>
+              <input type="date" value={editingEvent.date} onChange={e => setEditingEvent({ ...editingEvent, date: e.target.value })} className="edit-input" />
+            </div>
+            <div className="edit-row-group">
+              <div className="edit-row">
+                <label>Start Time</label>
+                <input type="time" value={editingEvent.startTime || ''} onChange={e => setEditingEvent({ ...editingEvent, startTime: e.target.value })} className="edit-input" />
+              </div>
+              <div className="edit-row">
+                <label>End Time</label>
+                <input type="time" value={editingEvent.endTime || ''} onChange={e => setEditingEvent({ ...editingEvent, endTime: e.target.value })} className="edit-input" />
+              </div>
+            </div>
+            <div className="edit-row">
+              <label>Assignees</label>
+              <CollaboratorPicker selected={editingEvent.assignees} onChange={assignees => setEditingEvent({ ...editingEvent, assignees })} />
+            </div>
+            <div className="edit-row">
+              <label>Project</label>
+              <select value={editingEvent.projectId || ''} onChange={e => setEditingEvent({ ...editingEvent, projectId: e.target.value || undefined })} className="edit-select">
+                <option value="">No project</option>
+                {ctx.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div className="edit-row">
+              <label>Notes</label>
+              <textarea value={editingEvent.notes || ''} onChange={e => setEditingEvent({ ...editingEvent, notes: e.target.value })} className="edit-textarea" rows={2} />
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-danger" onClick={() => setDeleteConfirm(editingEvent.id)}>Delete</button>
+              <button className="btn" onClick={() => setEditingEvent(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveEvent}>Save</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <Modal isOpen={deleteConfirm !== null} onClose={() => setDeleteConfirm(null)} title="Delete Event">
+        <p style={{ marginBottom: 'var(--space-xl)', color: 'var(--text-2)' }}>Delete this event? This cannot be undone.</p>
         <div className="modal-actions">
-          <button className="btn" onClick={() => setDeleteConfirm(null)}>
-            Cancel
-          </button>
-          <button className="btn btn-danger" onClick={() => deleteConfirm !== null && deleteBlock(deleteConfirm)}>
-            Delete
-          </button>
+          <button className="btn" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+          <button className="btn btn-danger" onClick={() => deleteConfirm && deleteEvent(deleteConfirm)}>Delete</button>
         </div>
       </Modal>
     </main>

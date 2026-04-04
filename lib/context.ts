@@ -5,6 +5,21 @@
 
 export type Priority = 'high' | 'medium' | 'low';
 export type ProjectStatus = 'active' | 'waiting' | 'blocked' | 'done';
+export type Collaborator = 'Aidan' | 'Luke';
+
+export const COLLABORATORS: Collaborator[] = ['Aidan', 'Luke'];
+
+export interface Task {
+  id: string;
+  title: string;
+  done: boolean;
+  priority: Priority;
+  assignees: Collaborator[];
+  dueDate?: string; // YYYY-MM-DD
+  projectId: string;
+  notes?: string;
+  createdAt: string;
+}
 
 export interface Project {
   id: string;
@@ -17,6 +32,20 @@ export interface Project {
   value?: string;
   notes: string;
   lastTouched?: string;
+  assignees: Collaborator[];
+  tasks: Task[];
+}
+
+export interface ScheduleEvent {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  startTime?: string; // HH:mm
+  endTime?: string; // HH:mm
+  assignees: Collaborator[];
+  projectId?: string;
+  notes?: string;
+  color?: string;
 }
 
 export interface DailyBlock {
@@ -32,6 +61,7 @@ export interface Goal {
   text: string;
   priority: Priority;
   done: boolean;
+  assignees?: Collaborator[];
 }
 
 export interface Reminder {
@@ -101,6 +131,7 @@ export interface VoltraContext {
   notionConnected: boolean; // placeholder — flip to true when Notion is ready
   activityLog: ActivityLogEntry[];
   agencyScores: AgencyScoreEntry[];
+  scheduleEvents: ScheduleEvent[];
 }
 
 // Default context — update this as your needs evolve
@@ -131,4 +162,5 @@ export const defaultContext: VoltraContext = {
   scratchpad: '',
   activityLog: [],
   agencyScores: [],
+  scheduleEvents: [],
 };
