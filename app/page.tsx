@@ -1,12 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
 import type { AgencyScoreEntry } from '@/lib/context';
 
-const HERO_IMAGE = '/branding/cover header2.png';
+const backgroundImages = [
+  '/media/Gould_Vesturhorn-Mt.-Wave-Reflections-.jpg',
+  '/media/Great-Ocean-Road-London-Bridge.jpg',
+  '/media/Lake-Moraine-Tree-and-Mountain-Vista.jpg',
+  '/media/Lilac-breasted-Roller,-Tanzania-2.jpg',
+  '/media/Paris-Opera-Ceiling--by-Marc-Chagall.jpg',
+  '/media/RGCreationZone_Background.jpg',
+  '/media/Sydney-Opera-House-16-mm.jpg',
+  '/media/Train-Street-In-Hanoi,-VIetnam.jpg',
+  '/media/Vatnajaokull-Iceland-Fire-and-Ice-Sunrise-Edit-2.jpg',
+  '/media/View-from-Tunnel-Bridge-at-Sunset.jpg',
+  '/media/Yellowstone-Sunstars-Trees-in-Winter.jpg',
+  '/media/Yosemite--Half-Dome-Vibrant-Colors.jpg',
+  '/media/Yosemite-Rapids-Fall-Colors.jpg',
+];
 
 export default function Overview() {
   const { ctx, save, refresh, isLoading } = useAppContext();
@@ -15,6 +29,11 @@ export default function Overview() {
   const [updateMsg, setUpdateMsg] = useState('');
   const [isCalculatingScore, setIsCalculatingScore] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
+
+  const backgroundImage = useMemo(() => {
+    const randomIndex = Math.floor(Math.random() * backgroundImages.length);
+    return backgroundImages[randomIndex];
+  }, []);
 
 
   // Get today's date in YYYY-MM-DD format
@@ -112,7 +131,7 @@ export default function Overview() {
       {/* Background Image */}
       <div
         className="overview-background"
-        style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+        style={{ backgroundImage: `url(${backgroundImage})` }}
       />
       <div className="overview-overlay" />
 
@@ -124,65 +143,9 @@ export default function Overview() {
         </p>
       </div>
 
-      {/* Agency Score - Main Feature */}
-      <div className="agency-score-section">
-        <button
-          className="agency-score-card"
-          onClick={() => todayScore ? setShowScoreModal(true) : calculateScore()}
-          disabled={isCalculatingScore}
-        >
-          <div className="agency-score-header">
-            <span className="agency-score-label">Agency Score</span>
-            <span className="agency-score-date">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-          </div>
-
-          {isCalculatingScore ? (
-            <div className="agency-score-loading">
-              <div className="loading-spinner" />
-              <span>Analyzing productivity...</span>
-            </div>
-          ) : todayScore ? (
-            <>
-              <div className="agency-score-value" style={{ color: getScoreColor(todayScore.score) }}>
-                {todayScore.score}
-              </div>
-              <div className="agency-score-rating" style={{ color: getScoreColor(todayScore.score) }}>
-                {getScoreLabel(todayScore.score)}
-              </div>
-              <div className="agency-score-activities">
-                {todayScore.activitiesCount} activities logged
-              </div>
-              <div className="agency-score-cta">Click for detailed report</div>
-            </>
-          ) : (
-            <>
-              <div className="agency-score-empty">
-                <span className="agency-score-empty-icon">◆</span>
-                <span>Calculate Today&apos;s Score</span>
-              </div>
-              <div className="agency-score-activities">
-                {(ctx.activityLog || []).filter(a => a.timestamp.startsWith(today)).length} activities logged today
-              </div>
-            </>
-          )}
-
-          {/* Mini trend chart */}
-          {recentScores.length > 1 && (
-            <div className="agency-score-trend">
-              {recentScores.map((s, i) => (
-                <div
-                  key={s.date}
-                  className="trend-bar"
-                  style={{
-                    height: `${s.score}%`,
-                    background: i === recentScores.length - 1 ? getScoreColor(s.score) : 'var(--surface-3)',
-                  }}
-                  title={`${s.date}: ${s.score}`}
-                />
-              ))}
-            </div>
-          )}
-        </button>
+      {/* Hero Banner */}
+      <div className="hero-banner" style={{ backgroundImage: `url('/branding/cover-header2.png')` }}>
+        <div className="hero-banner-overlay" />
       </div>
 
       {/* Navigation Cards */}

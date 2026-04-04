@@ -2279,6 +2279,44 @@ body {
   50%, 100% { left: 100%; }
 }
 
+/* ===== HERO BANNER ===== */
+.hero-banner {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-xl);
+}
+
+.hero-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.hero-banner-logo {
+  position: relative;
+  z-index: 1;
+  height: 80px;
+  width: auto;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.5));
+}
+
+@media (max-width: 900px) {
+  .hero-banner {
+    height: 130px;
+  }
+  .hero-banner-logo {
+    height: 56px;
+  }
+}
+
 /* ===== COLLABORATOR BADGES & PICKER ===== */
 .collab-badges {
   display: flex;
