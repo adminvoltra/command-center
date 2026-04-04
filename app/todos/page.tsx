@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import type { Task, Collaborator } from '@/lib/context';
 import { COLLABORATORS } from '@/lib/context';
 import { useAppContext } from '@/lib/useAppContext';
-import { CollaboratorBadges } from '@/components/CollaboratorPicker';
+import CollaboratorPicker, { CollaboratorBadges } from '@/components/CollaboratorPicker';
 
 export default function TodosPage() {
   const { ctx, save, isLoading } = useAppContext();
@@ -12,6 +12,12 @@ export default function TodosPage() {
   const [collabFilter, setCollabFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('');
   const [showDone, setShowDone] = useState(false);
+  const [addingTask, setAddingTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskProject, setNewTaskProject] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [newTaskAssignees, setNewTaskAssignees] = useState<Collaborator[]>([]);
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
 
   if (isLoading) {
     return (
@@ -80,6 +86,30 @@ export default function TodosPage() {
   const doneTasks = allTasks.filter(t => t.done).length;
   const overdueTasks = allTasks.filter(t => !t.done && t.dueDate && t.dueDate < new Date().toISOString().split('T')[0]).length;
 
+  const addTask = () => {
+    if (!newTaskTitle.trim() || !newTaskProject) return;
+    const task: Task & { projectName?: string } = {
+      id: Date.now().toString(),
+      title: newTaskTitle.trim(),
+      done: false,
+      priority: newTaskPriority,
+      assignees: newTaskAssignees,
+      dueDate: newTaskDueDate || undefined,
+      projectId: newTaskProject,
+      createdAt: new Date().toISOString(),
+    };
+    delete task.projectName;
+    const updatedProjects = ctx.projects.map(p =>
+      p.id === newTaskProject ? { ...p, tasks: [...(p.tasks || []), task] } : p
+    );
+    save({ ...ctx, projects: updatedProjects });
+    setNewTaskTitle('');
+    setNewTaskPriority('medium');
+    setNewTaskAssignees([]);
+    setNewTaskDueDate('');
+    setAddingTask(false);
+  };
+
   return (
     <main className="page-container">
       <div className="page-header">
@@ -90,7 +120,37 @@ export default function TodosPage() {
             {overdueTasks > 0 && <span style={{ color: 'var(--error)', marginLeft: 'var(--space-sm)' }}>{overdueTasks} overdue</span>}
           </p>
         </div>
+        <button className="btn btn-primary" onClick={() => setAddingTask(true)}>+ Add Task</button>
       </div>
+
+      {addingTask && (
+        <div className="task-add-form" style={{ marginBottom: 'var(--space-xl)', padding: 'var(--space-lg)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
+          <div className="edit-row">
+            <label>Task *</label>
+            <input type="text" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="edit-input" placeholder="Task title..." autoFocus onKeyDown={e => e.key === 'Enter' && addTask()} />
+          </div>
+          <div className="edit-row">
+            <label>Project *</label>
+            <select value={newTaskProject} onChange={e => setNewTaskProject(e.target.value)} className="edit-select">
+              <option value="">Select a project</option>
+              {ctx.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div className="task-add-options">
+            <select value={newTaskPriority} onChange={e => setNewTaskPriority(e.target.value as 'high' | 'medium' | 'low')} className="edit-select">
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <input type="date" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="edit-input" />
+            <CollaboratorPicker selected={newTaskAssignees} onChange={setNewTaskAssignees} />
+          </div>
+          <div className="edit-actions" style={{ marginTop: 'var(--space-sm)' }}>
+            <button className="btn btn-small btn-primary" onClick={addTask} disabled={!newTaskTitle.trim() || !newTaskProject}>Add Task</button>
+            <button className="btn btn-small" onClick={() => setAddingTask(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="todo-filters">
