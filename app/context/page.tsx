@@ -59,6 +59,7 @@ Status: ${ctx.notionConnected ? 'Connected' : 'Ready to connect — set NOTION_A
     <div className="app">
       <header className="topbar">
         <div className="topbar-left">
+          <img src="/branding/logo.png" alt="Voltra" style={{ height: 28, marginRight: 10 }} />
           <span className="brand">Voltra Command Center</span>
           <span className="brand-sub">Claude Context View</span>
         </div>

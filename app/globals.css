@@ -115,6 +115,12 @@ body {
   text-decoration: none;
 }
 
+.brand-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
 .brand-icon {
   width: 40px;
   height: 40px;

@@ -1,26 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
 import type { AgencyScoreEntry } from '@/lib/context';
 
-const backgroundImages = [
-  '/media/Gould_Vesturhorn-Mt.-Wave-Reflections-.jpg',
-  '/media/Great-Ocean-Road-London-Bridge.jpg',
-  '/media/Lake-Moraine-Tree-and-Mountain-Vista.jpg',
-  '/media/Lilac-breasted-Roller,-Tanzania-2.jpg',
-  '/media/Paris-Opera-Ceiling--by-Marc-Chagall.jpg',
-  '/media/RGCreationZone_Background.jpg',
-  '/media/Sydney-Opera-House-16-mm.jpg',
-  '/media/Train-Street-In-Hanoi,-VIetnam.jpg',
-  '/media/Vatnajaokull-Iceland-Fire-and-Ice-Sunrise-Edit-2.jpg',
-  '/media/View-from-Tunnel-Bridge-at-Sunset.jpg',
-  '/media/Yellowstone-Sunstars-Trees-in-Winter.jpg',
-  '/media/Yosemite--Half-Dome-Vibrant-Colors.jpg',
-  '/media/Yosemite-Rapids-Fall-Colors.jpg',
-];
+const HERO_IMAGE = '/branding/cover header2.png';
 
 export default function Overview() {
   const { ctx, save, refresh, isLoading } = useAppContext();
@@ -30,11 +16,6 @@ export default function Overview() {
   const [isCalculatingScore, setIsCalculatingScore] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
 
-  // Select random background on mount
-  const backgroundImage = useMemo(() => {
-    const randomIndex = Math.floor(Math.random() * backgroundImages.length);
-    return backgroundImages[randomIndex];
-  }, []);
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
@@ -131,7 +112,7 @@ export default function Overview() {
       {/* Background Image */}
       <div
         className="overview-background"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
+        style={{ backgroundImage: `url(${HERO_IMAGE})` }}
       />
       <div className="overview-overlay" />
 

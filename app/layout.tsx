@@ -5,7 +5,11 @@ import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: 'Voltra Command Center',
-  description: 'Personal operations dashboard',
+  description: 'Operations dashboard for Voltra',
+  icons: {
+    icon: '/branding/logo.png',
+    apple: '/branding/logo.png',
+  },
 };
 
 export const viewport: Viewport = {
