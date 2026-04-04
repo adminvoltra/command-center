@@ -2317,6 +2317,483 @@ body {
   }
 }
 
+/* ===== MISSION CONTROL ===== */
+
+.phase-stepper {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.phase-step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  min-width: 80px;
+  flex: 1;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.phase-step-indicator:hover {
+  background: var(--surface-2);
+}
+
+.phase-step-indicator.current {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.phase-step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+  transition: all 0.15s;
+}
+
+.phase-step-indicator.complete .phase-step-number {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.phase-step-indicator.in-progress .phase-step-number {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.phase-step-indicator.current .phase-step-number {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.phase-step-name {
+  font-size: 10px;
+  color: var(--text-3);
+  text-align: center;
+  line-height: 1.2;
+  max-width: 90px;
+}
+
+.phase-step-indicator.current .phase-step-name {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.phase-step-indicator.complete .phase-step-name {
+  color: var(--success);
+}
+
+/* Current Phase Card */
+.mc-current-phase {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.mc-phase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.mc-phase-number {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mc-phase-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 4px 0;
+}
+
+.mc-phase-desc {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.mc-phase-progress {
+  margin-top: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.mc-phase-progress-text {
+  font-size: 13px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.mc-validation-gate {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.mc-gate-label {
+  font-weight: 700;
+  color: var(--gold);
+  margin-right: 4px;
+}
+
+/* Workstream Cards */
+.mc-workstreams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.mc-workstream-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.collab-border-aidan { border-left: 4px solid #60a5fa; }
+.collab-border-luke { border-left: 4px solid #fbbf24; }
+
+.mc-ws-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.mc-ws-focus {
+  font-size: 15px;
+  color: var(--text-1);
+  line-height: 1.5;
+  margin-bottom: var(--space-sm);
+}
+
+.mc-ws-blockers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.mc-blocker-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--error);
+}
+
+.mc-ws-meta {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.mc-ws-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* Quick Stats */
+.mc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.mc-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  text-align: center;
+}
+
+.mc-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-1);
+  display: block;
+}
+
+.mc-stat-label {
+  font-size: 12px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Panels (Risks / Questions) */
+.mc-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.mc-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.mc-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: var(--space-md);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mc-panel-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.mc-panel-item:last-child {
+  border-bottom: none;
+}
+
+.mc-q-category {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* Phase List (Phases page) */
+.phase-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.phase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.phase-card.current {
+  border-color: var(--gold);
+  border-left: 4px solid var(--gold);
+}
+
+.phase-card.complete {
+  opacity: 0.7;
+}
+
+.phase-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  gap: var(--space-md);
+}
+
+.phase-card-left {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  flex: 1;
+}
+
+.phase-card-number {
+  font-size: 20px;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.phase-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0;
+}
+
+.phase-card-desc {
+  font-size: 13px;
+  color: var(--text-3);
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+.phase-card-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.phase-card-body {
+  padding: 0 var(--space-lg) var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.phase-prereqs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  padding: var(--space-md) 0;
+  font-size: 13px;
+}
+
+.phase-prereq-label {
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.phase-prereq-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.phase-prereq-badge.met {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.phase-prereq-badge.unmet {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--gold);
+}
+
+.phase-controls {
+  padding: var(--space-sm) 0;
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.step-status-select {
+  appearance: none;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 90px;
+}
+
+@media (max-width: 900px) {
+  .mc-workstreams { grid-template-columns: 1fr; }
+  .mc-stats { grid-template-columns: repeat(2, 1fr); }
+  .mc-panels { grid-template-columns: 1fr; }
+  .phase-stepper { gap: 0; }
+  .phase-step-indicator { min-width: 60px; padding: 6px 4px; }
+  .phase-step-name { font-size: 9px; max-width: 60px; }
+}
+
+/* ===== PHASE FIELDS (Instructions / Checklist) ===== */
+.phase-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.phase-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.phase-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phase-field-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.phase-field-content {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--space-md);
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  min-height: 120px;
+  white-space: pre-wrap;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.phase-field-content:hover {
+  border-color: var(--text-3);
+}
+
+.phase-field-empty {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.phase-textarea {
+  min-height: 120px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .phase-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== COLLABORATOR BADGES & PICKER ===== */
 .collab-badges {
   display: flex;
