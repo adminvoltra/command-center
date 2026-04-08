@@ -22,6 +22,9 @@ const emptyEvent: Omit<ScheduleEvent, 'id'> = {
   notes: '',
 };
 
+const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7am - 8pm
+
 export default function SchedulePage() {
   const { ctx, save, isLoading } = useAppContext();
   const [view, setView] = useState<ViewMode>('monthly');
@@ -54,9 +57,32 @@ export default function SchedulePage() {
     return eachDayOfInterval({ start: weekStart, end: weekEnd });
   }, [currentDate]);
 
+  // Pre-compute event lookups to avoid filtering per-cell
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, ScheduleEvent[]>();
+    for (const event of events) {
+      const existing = map.get(event.date);
+      if (existing) existing.push(event);
+      else map.set(event.date, [event]);
+    }
+    return map;
+  }, [events]);
+
+  const eventsByDateHour = useMemo(() => {
+    const map = new Map<string, ScheduleEvent[]>();
+    for (const event of events) {
+      if (!event.startTime) continue;
+      const hour = event.startTime.substring(0, 2);
+      const key = `${event.date}-${hour}`;
+      const existing = map.get(key);
+      if (existing) existing.push(event);
+      else map.set(key, [event]);
+    }
+    return map;
+  }, [events]);
+
   const getEventsForDate = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return events.filter(e => e.date === dateStr);
+    return eventsByDate.get(format(date, 'yyyy-MM-dd')) || [];
   };
 
   if (isLoading) {
@@ -96,9 +122,6 @@ export default function SchedulePage() {
     setNewEvent({ ...emptyEvent, date: format(date, 'yyyy-MM-dd') });
     setIsAddModalOpen(true);
   };
-
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7am - 8pm
 
   // Events for selected date panel
   const selectedDateEvents = selectedDate
@@ -205,9 +228,7 @@ export default function SchedulePage() {
               {weekDays.map(day => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const hourStr = hour.toString().padStart(2, '0');
-                const hourEvents = events.filter(e =>
-                  e.date === dateStr && e.startTime && e.startTime.startsWith(hourStr)
-                );
+                const hourEvents = eventsByDateHour.get(`${dateStr}-${hourStr}`) || [];
                 return (
                   <div
                     key={`${dateStr}-${hour}`}

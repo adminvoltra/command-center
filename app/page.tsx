@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/useAppContext';
 import { CollaboratorBadges } from '@/components/CollaboratorPicker';
@@ -26,6 +26,13 @@ export default function Overview() {
   const [updateText, setUpdateText] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateMsg, setUpdateMsg] = useState('');
+  const updateMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (updateMsgTimerRef.current) clearTimeout(updateMsgTimerRef.current);
+    };
+  }, []);
 
   const backgroundImage = useMemo(() => {
     return backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
@@ -54,7 +61,8 @@ export default function Overview() {
         await refresh();
         setUpdateText('');
         setUpdateMsg('Updated successfully');
-        setTimeout(() => setUpdateMsg(''), 3000);
+        if (updateMsgTimerRef.current) clearTimeout(updateMsgTimerRef.current);
+        updateMsgTimerRef.current = setTimeout(() => setUpdateMsg(''), 3000);
       } else {
         setUpdateMsg(data.error || 'Update failed.');
       }

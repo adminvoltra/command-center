@@ -19,10 +19,12 @@ const stepStatusOptions: { value: StepStatus; label: string }[] = [
 function HandoffPrompt({ value, onSave }: { value: string; onSave: (val: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [collapsed, setCollapsed] = useState(true);
 
   if (editing) {
     return (
-      <div className="handoff-prompt">
+      <div className="handoff-prompt" onClick={e => e.stopPropagation()}>
+        <span className="handoff-label">Handoff Prompt</span>
         <textarea value={draft} onChange={e => setDraft(e.target.value)} className="edit-textarea" rows={3} placeholder="Describe the handoff context, what was done, and what the next person needs to know..." autoFocus />
         <div className="edit-actions" style={{ marginTop: 'var(--space-xs)' }}>
           <button className="btn btn-small btn-primary" onClick={() => { onSave(draft); setEditing(false); }}>Save</button>
@@ -33,11 +35,16 @@ function HandoffPrompt({ value, onSave }: { value: string; onSave: (val: string)
   }
 
   return (
-    <div className="handoff-prompt" onClick={() => { setDraft(value); setEditing(true); }}>
-      <span className="handoff-label">Handoff Prompt</span>
-      <div className="handoff-content">
-        {value || <span className="phase-field-empty">Click to add handoff prompt...</span>}
-      </div>
+    <div className="handoff-prompt" onClick={e => { e.stopPropagation(); setCollapsed(!collapsed); }}>
+      <span className="handoff-label">
+        <span className={`collapse-arrow ${collapsed ? '' : 'expanded'}`}>▶</span>
+        Handoff Prompt
+      </span>
+      {!collapsed && (
+        <div className="handoff-content" onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}>
+          {value || <span className="phase-field-empty">Click to add handoff prompt...</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -45,6 +52,7 @@ function HandoffPrompt({ value, onSave }: { value: string; onSave: (val: string)
 function ProjectInstructions({ value, onSave }: { value: string; onSave: (val: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [collapsed, setCollapsed] = useState(true);
 
   if (editing) {
     return (
@@ -71,13 +79,70 @@ function ProjectInstructions({ value, onSave }: { value: string; onSave: (val: s
 
   return (
     <div className="project-instructions-section" style={{ marginBottom: 'var(--space-xl)' }}>
-      <div className="phase-field-header" style={{ marginBottom: 'var(--space-sm)' }}>
-        <span className="phase-field-label">Project Instructions</span>
-        <button className="btn btn-small" onClick={() => { setDraft(value); setEditing(true); }}>Edit</button>
+      <div className="phase-field-header" style={{ marginBottom: collapsed ? 0 : 'var(--space-sm)', cursor: 'pointer' }} onClick={() => setCollapsed(!collapsed)}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+          <span className={`collapse-arrow ${collapsed ? '' : 'expanded'}`}>▶</span>
+          <span className="phase-field-label">Project Instructions</span>
+        </span>
+        {!collapsed && <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}>Edit</button>}
       </div>
-      <div className="phase-field-content" onClick={() => { setDraft(value); setEditing(true); }} style={{ minHeight: 80 }}>
-        {value || <span className="phase-field-empty">Click to add project instructions or paste a prompt...</span>}
+      {!collapsed && (
+        <div className="phase-field-content" onClick={() => { setDraft(value); setEditing(true); }} style={{ minHeight: 80 }}>
+          {value || <span className="phase-field-empty">Click to add project instructions or paste a prompt...</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CollapsiblePhaseField({ label, value, onSave, placeholder }: {
+  label: string;
+  value: string;
+  onSave: (val: string) => void;
+  placeholder: string;
+}) {
+  const [collapsed, setCollapsed] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (editing) {
+    return (
+      <div className="phase-field">
+        <div className="phase-field-header">
+          <span className="phase-field-label">{label}</span>
+        </div>
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          className="edit-textarea phase-textarea"
+          rows={6}
+          placeholder={placeholder}
+          autoFocus
+        />
+        <div className="edit-actions" style={{ marginTop: 'var(--space-sm)' }}>
+          <button className="btn btn-small btn-primary" onClick={() => { onSave(draft); setEditing(false); }}>Save</button>
+          <button className="btn btn-small" onClick={() => setEditing(false)}>Cancel</button>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="phase-field">
+      <div className="phase-field-header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: 'pointer' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+          <span className={`collapse-arrow ${collapsed ? '' : 'expanded'}`}>▶</span>
+          <span className="phase-field-label">{label}</span>
+        </span>
+        {!collapsed && (
+          <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}>Edit</button>
+        )}
+      </div>
+      {!collapsed && (
+        <div className="phase-field-content" onClick={() => { setDraft(value); setEditing(true); }}>
+          {value || <span className="phase-field-empty">{placeholder}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -92,10 +157,6 @@ export default function ProjectDetailPage() {
   const [newStepTitle, setNewStepTitle] = useState('');
   const [newStepAssignees, setNewStepAssignees] = useState<Collaborator[]>([]);
   const [confirmCompletePhase, setConfirmCompletePhase] = useState<string | null>(null);
-  const [editingInstructions, setEditingInstructions] = useState(false);
-  const [editingChecklist, setEditingChecklist] = useState(false);
-  const [draftInstructions, setDraftInstructions] = useState('');
-  const [draftChecklist, setDraftChecklist] = useState('');
   // Task add
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -263,7 +324,7 @@ export default function ProjectDetailPage() {
               <div
                 key={phase.id}
                 className={`phase-step-indicator ${phase.status} ${phase.id === currentPhase?.id ? 'current' : ''}`}
-                onClick={() => { setExpandedPhase(expandedPhase === phase.id ? null : phase.id); setEditingInstructions(false); setEditingChecklist(false); }}
+                onClick={() => setExpandedPhase(expandedPhase === phase.id ? null : phase.id)}
                 style={{ cursor: 'pointer' }}
               >
                 <div className="phase-step-number">
@@ -391,70 +452,24 @@ export default function ProjectDetailPage() {
 
                   {/* Prompt & Checklist Instructions */}
                   <div className="phase-fields">
-                    <div className="phase-field">
-                      <div className="phase-field-header">
-                        <span className="phase-field-label">Prompt</span>
-                        {!editingInstructions && (
-                          <button className="btn btn-small" onClick={() => { setDraftInstructions(phase.instructions || ''); setEditingInstructions(true); }}>Edit</button>
-                        )}
-                      </div>
-                      {editingInstructions ? (
-                        <div>
-                          <textarea
-                            value={draftInstructions}
-                            onChange={e => setDraftInstructions(e.target.value)}
-                            className="edit-textarea phase-textarea"
-                            rows={6}
-                            placeholder="Enter prompt or implementation guidance for this phase..."
-                            autoFocus
-                          />
-                          <div className="edit-actions" style={{ marginTop: 'var(--space-sm)' }}>
-                            <button className="btn btn-small btn-primary" onClick={() => {
-                              const updatedPhases = phases.map(p => p.id === phase.id ? { ...p, instructions: draftInstructions } : p);
-                              updateProject({ phases: updatedPhases });
-                              setEditingInstructions(false);
-                            }}>Save</button>
-                            <button className="btn btn-small" onClick={() => setEditingInstructions(false)}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="phase-field-content" onClick={() => { setDraftInstructions(phase.instructions || ''); setEditingInstructions(true); }}>
-                          {phase.instructions || <span className="phase-field-empty">Click to add prompt...</span>}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="phase-field">
-                      <div className="phase-field-header">
-                        <span className="phase-field-label">Checklist Instructions</span>
-                        {!editingChecklist && (
-                          <button className="btn btn-small" onClick={() => { setDraftChecklist(phase.checklistInstructions || ''); setEditingChecklist(true); }}>Edit</button>
-                        )}
-                      </div>
-                      {editingChecklist ? (
-                        <div>
-                          <textarea
-                            value={draftChecklist}
-                            onChange={e => setDraftChecklist(e.target.value)}
-                            className="edit-textarea phase-textarea"
-                            rows={6}
-                            placeholder="Enter checklist items, verification steps, or completion criteria..."
-                          />
-                          <div className="edit-actions" style={{ marginTop: 'var(--space-sm)' }}>
-                            <button className="btn btn-small btn-primary" onClick={() => {
-                              const updatedPhases = phases.map(p => p.id === phase.id ? { ...p, checklistInstructions: draftChecklist } : p);
-                              updateProject({ phases: updatedPhases });
-                              setEditingChecklist(false);
-                            }}>Save</button>
-                            <button className="btn btn-small" onClick={() => setEditingChecklist(false)}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="phase-field-content" onClick={() => { setDraftChecklist(phase.checklistInstructions || ''); setEditingChecklist(true); }}>
-                          {phase.checklistInstructions || <span className="phase-field-empty">Click to add checklist instructions...</span>}
-                        </div>
-                      )}
-                    </div>
+                    <CollapsiblePhaseField
+                      label="Prompt"
+                      value={phase.instructions || ''}
+                      onSave={(val) => {
+                        const updatedPhases = phases.map(p => p.id === phase.id ? { ...p, instructions: val } : p);
+                        updateProject({ phases: updatedPhases });
+                      }}
+                      placeholder="Enter prompt or implementation guidance for this phase..."
+                    />
+                    <CollapsiblePhaseField
+                      label="Checklist Instructions"
+                      value={phase.checklistInstructions || ''}
+                      onSave={(val) => {
+                        const updatedPhases = phases.map(p => p.id === phase.id ? { ...p, checklistInstructions: val } : p);
+                        updateProject({ phases: updatedPhases });
+                      }}
+                      placeholder="Enter checklist items, verification steps, or completion criteria..."
+                    />
                   </div>
 
                   {/* Phase Handoff Prompt - only when complete */}

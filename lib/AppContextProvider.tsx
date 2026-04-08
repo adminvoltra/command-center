@@ -1,8 +1,15 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import type { VoltraContext, ActivityType } from './context';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
+import type { VoltraContext, ActivityType, ActivityLogEntry } from './context';
 import { defaultContext } from './context';
+
+const MAX_ACTIVITY_LOG = 500;
+
+function trimActivityLog(log: ActivityLogEntry[]): ActivityLogEntry[] {
+  if (log.length <= MAX_ACTIVITY_LOG) return log;
+  return log.slice(log.length - MAX_ACTIVITY_LOG);
+}
 
 interface AppContextValue {
   ctx: VoltraContext;
@@ -24,6 +31,30 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
+  const localStorageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedLocalStorageSave = useCallback((data: VoltraContext) => {
+    if (localStorageTimerRef.current) {
+      clearTimeout(localStorageTimerRef.current);
+    }
+    localStorageTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem('voltra-context', JSON.stringify(data));
+      } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+      }
+      localStorageTimerRef.current = null;
+    }, 1000);
+  }, []);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (localStorageTimerRef.current) {
+        clearTimeout(localStorageTimerRef.current);
+      }
+    };
+  }, []);
 
   // Fetch context from Redis - only once on initial load
   const fetchContext = useCallback(async () => {
@@ -41,7 +72,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
       if (data.success && data.context) {
         setCtxState(data.context);
-        localStorage.setItem('voltra-context', JSON.stringify(data.context));
+        try { localStorage.setItem('voltra-context', JSON.stringify(data.context)); } catch {}
       } else {
         // Fallback to localStorage
         const saved = localStorage.getItem('voltra-context');
@@ -77,7 +108,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
       if (data.success && data.context) {
         setCtxState(data.context);
-        localStorage.setItem('voltra-context', JSON.stringify(data.context));
+        try { localStorage.setItem('voltra-context', JSON.stringify(data.context)); } catch {}
       }
     } catch (err) {
       console.error('Failed to refresh context:', err);
@@ -96,11 +127,15 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
   // Save context to Redis
   const save = useCallback(async (newCtx: VoltraContext) => {
-    const updatedCtx = { ...newCtx, lastUpdated: new Date().toISOString() };
+    const updatedCtx = {
+      ...newCtx,
+      lastUpdated: new Date().toISOString(),
+      activityLog: trimActivityLog(newCtx.activityLog || []),
+    };
 
     // Optimistically update local state
     setCtxState(updatedCtx);
-    localStorage.setItem('voltra-context', JSON.stringify(updatedCtx));
+    debouncedLocalStorageSave(updatedCtx);
 
     setIsSaving(true);
     setError(null);
@@ -123,7 +158,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [debouncedLocalStorageSave]);
 
   const setCtx = useCallback((newCtx: VoltraContext) => {
     setCtxState(newCtx);
@@ -150,7 +185,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   ) => {
     setCtxState(prev => ({
       ...prev,
-      activityLog: [...(prev.activityLog || []), createActivityEntry(type, description, metadata)],
+      activityLog: trimActivityLog([...(prev.activityLog || []), createActivityEntry(type, description, metadata)]),
     }));
   }, [createActivityEntry]);
 
@@ -162,25 +197,25 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     const entry = createActivityEntry(activity.type, activity.description, activity.metadata);
     const ctxWithActivity = {
       ...newCtx,
-      activityLog: [...(newCtx.activityLog || []), entry],
+      activityLog: trimActivityLog([...(newCtx.activityLog || []), entry]),
     };
     await save(ctxWithActivity);
   }, [save, createActivityEntry]);
 
+  const contextValue = useMemo<AppContextValue>(() => ({
+    ctx,
+    setCtx,
+    save,
+    saveWithActivity,
+    logActivity,
+    isLoading,
+    isSaving,
+    error,
+    refresh,
+  }), [ctx, setCtx, save, saveWithActivity, logActivity, isLoading, isSaving, error, refresh]);
+
   return (
-    <AppContext.Provider
-      value={{
-        ctx,
-        setCtx,
-        save,
-        saveWithActivity,
-        logActivity,
-        isLoading,
-        isSaving,
-        error,
-        refresh,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

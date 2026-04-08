@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
 
@@ -51,6 +51,13 @@ export default function ExperimentsPage() {
   const [report, setReport] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
 
   if (isLoadingContext) {
     return (
@@ -97,7 +104,8 @@ export default function ExperimentsPage() {
     const text = `# ${exp?.title || 'Report'}\nGenerated: ${new Date().toLocaleString()}\n\n${report}`;
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const downloadReport = () => {
@@ -159,13 +167,15 @@ export default function ExperimentsPage() {
                   if (line.startsWith('**')) {
                     return <h3 key={i} className="report-heading">{cleanLine}</h3>;
                   }
+                  const parts = line.split(/(\*\*.*?\*\*)/g);
                   return (
-                    <p
-                      key={i}
-                      dangerouslySetInnerHTML={{
-                        __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      }}
-                    />
+                    <p key={i}>
+                      {parts.map((part, j) =>
+                        part.startsWith('**') && part.endsWith('**')
+                          ? <strong key={j}>{part.slice(2, -2)}</strong>
+                          : <span key={j}>{part}</span>
+                      )}
+                    </p>
                   );
                 }
                 if (line.startsWith('- ') || line.startsWith('• ')) {
