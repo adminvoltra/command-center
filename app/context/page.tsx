@@ -36,12 +36,10 @@ ${ctx.weeklyGoals.map(g =>
   `- [${g.done ? 'X' : ' '}] ${g.text} (${g.priority} priority)`
 ).join('\n')}
 
-### Job Search
-- Status: ${ctx.jobSearch.status}
-- Target Salary: ${ctx.jobSearch.targetSalary}
-- Applications This Week: ${ctx.jobSearch.applicationsThisWeek}
-- Active Conversations: ${ctx.jobSearch.activeConversations.join(', ')}
-- Target Companies: ${ctx.jobSearch.targetCompanies.join(', ')}
+### Clients (${(ctx.clients || []).length})
+${(ctx.clients || []).map(c =>
+  `- ${c.name} (${c.status})${c.contactName ? ` — ${c.contactName}` : ''}${c.email ? ` <${c.email}>` : ''}`
+).join('\n')}
 
 ### Daily Baseline Plan
 ${ctx.dailyPlan.map(b =>

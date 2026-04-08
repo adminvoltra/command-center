@@ -89,6 +89,19 @@ export interface PerformanceMetrics {
   weeklyScores: number[]; // last 4 weeks, 1-10
 }
 
+export type ClientStatus = 'active' | 'prospect' | 'paused' | 'churned';
+
+export interface Client {
+  id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  status: ClientStatus;
+  notes: string;
+  createdAt: string;
+}
+
 export type ActivityType =
   | 'goal_completed'
   | 'goal_created'
@@ -183,6 +196,16 @@ export interface Risk {
   isResolved: boolean;
 }
 
+export interface MeetingNote {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  content: string;
+  projectId?: string;
+  assignees: Collaborator[];
+  createdAt: string;
+}
+
 export interface MissionControl {
   phases: Phase[];
   workstreams: Workstream[];
@@ -213,7 +236,9 @@ export interface VoltraContext {
   dailyPlan: DailyBlock[];
   weeklyGoals: Goal[];
   reminders: Reminder[];
-  jobSearch: {
+  clients: Client[];
+  /** @deprecated kept for backward compat with existing Redis data */
+  jobSearch?: {
     status: string;
     targetSalary: string;
     targetCompanies: string[];
@@ -226,6 +251,7 @@ export interface VoltraContext {
   activityLog: ActivityLogEntry[];
   agencyScores: AgencyScoreEntry[];
   scheduleEvents: ScheduleEvent[];
+  meetingNotes: MeetingNote[];
   missionControl: MissionControl;
 }
 
@@ -260,17 +286,12 @@ export const defaultContext: VoltraContext = {
     lastActiveDate: new Date().toISOString(),
     weeklyScores: [],
   },
-  jobSearch: {
-    status: '',
-    targetSalary: '',
-    targetCompanies: [],
-    activeConversations: [],
-    applicationsThisWeek: 0,
-  },
+  clients: [],
   scratchpad: '',
   activityLog: [],
   agencyScores: [],
   scheduleEvents: [],
+  meetingNotes: [],
   missionControl: {
     currentPhaseId: 'phase-1',
     phases: [
