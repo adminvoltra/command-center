@@ -14,7 +14,7 @@ export default function ContextPage() {
     );
   }
 
-  const contextSummary = `# Voltra Command Center — Claude Context
+  const contextSummary = `# Voltra Mission Control — Claude Context
 Last Updated: ${new Date(ctx.lastUpdated).toLocaleString()}
 
 ## Voltra Mode Context (Activated with "Voltra Mode")
@@ -58,7 +58,7 @@ Status: ${ctx.notionConnected ? 'Connected' : 'Ready to connect — set NOTION_A
       <header className="topbar">
         <div className="topbar-left">
           <img src="/branding/logo.png" alt="Voltra" style={{ height: 28, marginRight: 10 }} />
-          <span className="brand">Voltra Command Center</span>
+          <span className="brand">Voltra Mission Control</span>
           <span className="brand-sub">Claude Context View</span>
         </div>
         <div className="topbar-right">

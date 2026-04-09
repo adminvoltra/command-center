@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     applicationsThisWeek: currentContext.jobSearch?.applicationsThisWeek || 0,
   };
 
-  const prompt = `You are a data update assistant for the Voltra Command Center dashboard.
+  const prompt = `You are a data update assistant for the Voltra Mission Control dashboard.
 
 Current state summary:
 - Projects: ${contextSummary.projectNames.join(', ') || 'none'}

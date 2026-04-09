@@ -37,8 +37,7 @@ export default function NavBar() {
         <Link href="/" className="navbar-brand">
           <img src="/branding/logo.png" alt="Voltra" className="brand-logo" />
           <div className="brand-text">
-            <span className="brand-name">Command Center</span>
-            <span className="brand-sub">Mission Control</span>
+            <span className="brand-name">Mission Control</span>
           </div>
         </Link>
 

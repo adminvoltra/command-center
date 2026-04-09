@@ -4,7 +4,7 @@ import NavBar from '@/components/NavBar';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'Voltra Command Center',
+  title: 'Voltra Mission Control',
   description: 'Operations dashboard for Voltra',
   icons: {
     icon: '/branding/logo.png',
