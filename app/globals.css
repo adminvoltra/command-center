@@ -1911,11 +1911,11 @@ body {
 
   .navbar-links {
     display: none;
-    position: fixed;
-    top: 72px;
+    position: absolute;
+    top: 100%;
     left: 0;
     right: 0;
-    bottom: 0;
+    height: calc(100vh - 72px);
     background: rgba(9, 9, 11, 0.98);
     backdrop-filter: blur(24px);
     flex-direction: column;
@@ -1973,7 +1973,7 @@ body {
   }
 
   .navbar-links {
-    top: 60px;
+    height: calc(100vh - 60px);
   }
 
   .brand-logo {
