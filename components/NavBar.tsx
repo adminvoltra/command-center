@@ -1,14 +1,15 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
   { href: '/', label: 'Overview' },
+  { href: '/todos', label: 'Project Todos' },
   { href: '/projects', label: 'Projects' },
   { href: '/schedule', label: 'Schedule' },
-  { href: '/goals', label: 'Goals' },
-  { href: '/todos', label: 'Todos' },
+  { href: '/goals', label: 'Tasks' },
   { href: '/clients', label: 'Clients' },
   { href: '/meetings', label: 'Meetings' },
   { href: '/log', label: 'Work Log' },
@@ -17,6 +18,18 @@ const navItems = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   return (
     <header className="navbar">
@@ -29,7 +42,7 @@ export default function NavBar() {
           </div>
         </Link>
 
-        <nav className="navbar-links">
+        <nav className={`navbar-links ${mobileOpen ? 'open' : ''}`}>
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -45,9 +58,18 @@ export default function NavBar() {
           ))}
         </nav>
 
-        <div className="navbar-status">
-          <div className="status-indicator" />
-          <span className="status-text">Live</span>
+        <div className="navbar-right">
+          <div className="navbar-status">
+            <div className="status-indicator" />
+            <span className="status-text">Live</span>
+          </div>
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            <span className={`hamburger ${mobileOpen ? 'open' : ''}`} />
+          </button>
         </div>
       </div>
     </header>

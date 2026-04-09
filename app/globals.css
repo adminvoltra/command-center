@@ -181,10 +181,67 @@ body {
   border-bottom: 2px solid var(--gold);
 }
 
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
 .navbar-status {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+/* ===== MOBILE MENU BUTTON ===== */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamburger {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text-1);
+  position: relative;
+  transition: background 0.2s;
+}
+
+.hamburger::before,
+.hamburger::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  background: var(--text-1);
+  transition: transform 0.2s;
+}
+
+.hamburger::before { top: -6px; }
+.hamburger::after { top: 6px; }
+
+.hamburger.open {
+  background: transparent;
+}
+
+.hamburger.open::before {
+  transform: rotate(45deg);
+  top: 0;
+}
+
+.hamburger.open::after {
+  transform: rotate(-45deg);
+  top: 0;
 }
 
 .status-indicator {
@@ -1809,17 +1866,177 @@ body {
 }
 
 @media (max-width: 900px) {
-  .navbar-links { display: none; }
+  /* Mobile nav */
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .navbar-links {
+    display: none;
+    position: fixed;
+    top: 72px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(9, 9, 11, 0.98);
+    backdrop-filter: blur(24px);
+    flex-direction: column;
+    padding: var(--space-lg);
+    gap: var(--space-xs);
+    z-index: 99;
+    overflow-y: auto;
+  }
+
+  .navbar-links.open {
+    display: flex;
+  }
+
+  .nav-link {
+    font-size: 16px;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+  }
+
+  .nav-link.active {
+    border-bottom: none;
+    border-left: 3px solid var(--gold);
+  }
+
+  /* Layout */
   .overview-nav { grid-template-columns: repeat(2, 1fr); }
   .job-stats { grid-template-columns: 1fr; }
+
+  /* Page headers */
+  .page-header {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .page-title {
+    font-size: 28px;
+  }
+
+  /* Forms */
+  .edit-row-group {
+    grid-template-columns: 1fr;
+  }
+
+  /* Schedule tabs */
+  .schedule-tabs {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 600px) {
+  /* Navbar */
+  .navbar-inner {
+    height: 60px;
+    padding: 0 var(--space-md);
+  }
+
+  .navbar-links {
+    top: 60px;
+  }
+
+  .brand-logo {
+    height: 28px;
+  }
+
+  .brand-name {
+    font-size: 14px;
+  }
+
+  .brand-sub {
+    display: none;
+  }
+
+  /* Layout */
   .overview-stats { grid-template-columns: 1fr; }
   .overview-charts { grid-template-columns: 1fr; }
   .overview-nav { grid-template-columns: 1fr; }
-  .page-container { padding: var(--space-lg); }
-  .stat-value { font-size: 32px; }
+  .page-container { padding: var(--space-md); }
+  .stat-value { font-size: 28px; }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  /* Cards */
+  .card,
+  .stat-card,
+  .project-card {
+    padding: var(--space-md);
+  }
+
+  /* Buttons */
+  .btn {
+    font-size: 12px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .btn-primary {
+    white-space: nowrap;
+  }
+
+  /* Modal */
+  .modal-container {
+    margin: var(--space-md);
+    max-height: calc(100vh - var(--space-2xl));
+    width: calc(100% - var(--space-2xl));
+  }
+
+  /* Schedule calendar */
+  .calendar-day-num {
+    font-size: 11px;
+  }
+
+  .calendar-event-chip {
+    font-size: 9px;
+    padding: 1px 3px;
+  }
+
+  /* Week view scroll wrapper */
+  .calendar-week {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Goal items */
+  .goal-item {
+    padding: var(--space-sm);
+  }
+
+  /* Todo items */
+  .todo-item {
+    padding: var(--space-sm);
+  }
+
+  .todo-title {
+    font-size: 13px;
+  }
+
+  .todo-meta {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* Project detail */
+  .phase-card {
+    padding: var(--space-md);
+  }
+
+  .phase-card-header {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .phase-controls {
+    flex-wrap: wrap;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
