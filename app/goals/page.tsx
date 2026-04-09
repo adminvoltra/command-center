@@ -130,7 +130,7 @@ export default function GoalsPage() {
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
-          + Add Goal
+          + Add Task
         </button>
       </div>
 
@@ -229,8 +229,8 @@ export default function GoalsPage() {
         )}
       </div>
 
-      {/* Add Goal Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Goal">
+      {/* Add Task Modal */}
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Task">
         <div className="edit-form">
           <div className="edit-row">
             <label>Goal *</label>
@@ -262,7 +262,7 @@ export default function GoalsPage() {
           </div>
           <div className="modal-actions">
             <button className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={addGoal} disabled={!newGoal.text.trim()}>Add Goal</button>
+            <button className="btn btn-primary" onClick={addGoal} disabled={!newGoal.text.trim()}>Add Task</button>
           </div>
         </div>
       </Modal>

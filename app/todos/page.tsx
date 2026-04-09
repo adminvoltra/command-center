@@ -120,7 +120,7 @@ export default function TodosPage() {
             {overdueTasks > 0 && <span style={{ color: 'var(--error)', marginLeft: 'var(--space-sm)' }}>{overdueTasks} overdue</span>}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setAddingTask(true)}>+ Add Task</button>
+        <button className="btn btn-primary" onClick={() => setAddingTask(true)}>+ Add Todo</button>
       </div>
 
       {addingTask && (
@@ -146,7 +146,7 @@ export default function TodosPage() {
             <CollaboratorPicker selected={newTaskAssignees} onChange={setNewTaskAssignees} />
           </div>
           <div className="edit-actions" style={{ marginTop: 'var(--space-sm)' }}>
-            <button className="btn btn-small btn-primary" onClick={addTask} disabled={!newTaskTitle.trim() || !newTaskProject}>Add Task</button>
+            <button className="btn btn-small btn-primary" onClick={addTask} disabled={!newTaskTitle.trim() || !newTaskProject}>Add Todo</button>
             <button className="btn btn-small" onClick={() => setAddingTask(false)}>Cancel</button>
           </div>
         </div>

@@ -23,6 +23,16 @@ export default function ActivityLogPage() {
   });
   const [filterType, setFilterType] = useState<ActivityType | 'all'>('all');
   const [filterDays, setFilterDays] = useState(7);
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+
+  const toggleDay = (date: string) => {
+    setCollapsedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -166,37 +176,45 @@ export default function ActivityLogPage() {
         <div className="log-list">
           {Object.entries(groupedActivities).map(([date, dayActivities]) => (
             <div key={date} className="log-day">
-              <div className="log-day-header">
-                <span className="log-day-date">{date}</span>
+              <div
+                className={`log-day-header ${collapsedDays.has(date) ? 'collapsed' : ''}`}
+                onClick={() => toggleDay(date)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className={`collapse-arrow ${collapsedDays.has(date) ? '' : 'expanded'}`}>▶</span>
+                  <span className="log-day-date">{date}</span>
+                </div>
                 <span className="log-day-count">{dayActivities.length} activities</span>
               </div>
-              <div className="log-day-activities">
-                {dayActivities.map(activity => (
-                  <div key={activity.id} className="log-item">
-                    <div
-                      className="log-item-indicator"
-                      style={{ background: getTypeColor(activity.type) }}
-                    />
-                    <div className="log-item-content">
-                      <div className="log-item-header">
-                        <span className="log-item-type" style={{ color: getTypeColor(activity.type) }}>
-                          {formatType(activity.type)}
-                        </span>
-                        <span className="log-item-time">
-                          {new Date(activity.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
+              {!collapsedDays.has(date) && (
+                <div className="log-day-activities">
+                  {dayActivities.map(activity => (
+                    <div key={activity.id} className="log-item">
+                      <div
+                        className="log-item-indicator"
+                        style={{ background: getTypeColor(activity.type) }}
+                      />
+                      <div className="log-item-content">
+                        <div className="log-item-header">
+                          <span className="log-item-type" style={{ color: getTypeColor(activity.type) }}>
+                            {formatType(activity.type)}
+                          </span>
+                          <span className="log-item-time">
+                            {new Date(activity.timestamp).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <p className="log-item-desc">{activity.description}</p>
+                        {activity.metadata?.manual === true && (
+                          <span className="log-item-manual">Manual entry</span>
+                        )}
                       </div>
-                      <p className="log-item-desc">{activity.description}</p>
-                      {activity.metadata?.manual === true && (
-                        <span className="log-item-manual">Manual entry</span>
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

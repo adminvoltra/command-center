@@ -1678,6 +1678,16 @@ body {
   padding: var(--space-lg);
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.log-day-header:hover {
+  background: var(--surface-3);
+}
+
+.log-day-header.collapsed {
+  border-bottom: none;
 }
 
 .log-day-date {
@@ -1764,22 +1774,49 @@ body {
   gap: var(--space-xl);
 }
 
+.meeting-month {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
 .meeting-month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.meeting-month-header:hover {
+  background: var(--surface-3);
+}
+
+.meeting-month-header.collapsed {
+  border-bottom: none;
+}
+
+.meeting-month-date {
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--space-md);
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--border);
+  color: var(--text-1);
+}
+
+.meeting-month-count {
+  font-size: 12px;
+  color: var(--text-3);
 }
 
 .meeting-month-notes {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  padding: var(--space-md);
 }
 
 .meeting-card {

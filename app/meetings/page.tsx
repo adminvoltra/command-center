@@ -12,6 +12,7 @@ export default function MeetingsPage() {
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Partial<MeetingNote>>({});
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
   const [newNote, setNewNote] = useState({
     title: '',
     date: new Date().toISOString().slice(0, 10),
@@ -86,6 +87,15 @@ export default function MeetingsPage() {
     setEditDraft({});
   };
 
+  const toggleMonth = (month: string) => {
+    setCollapsedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(month)) next.delete(month);
+      else next.add(month);
+      return next;
+    });
+  };
+
   const viewingNote = viewingId ? meetingNotes.find((n) => n.id === viewingId) : null;
 
   // Group by month
@@ -140,41 +150,52 @@ export default function MeetingsPage() {
         <div className="meeting-list">
           {Object.entries(groupedNotes).map(([month, notes]) => (
             <div key={month} className="meeting-month">
-              <div className="meeting-month-header">{month}</div>
-              <div className="meeting-month-notes">
-                {notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className="meeting-card"
-                    onClick={() => setViewingId(note.id)}
-                  >
-                    <div className="meeting-card-header">
-                      <h3 className="meeting-card-title">{note.title}</h3>
-                      <span className="meeting-card-date">
-                        {new Date(note.date).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
-                    </div>
-                    <p className="meeting-card-preview">
-                      {note.content.length > 160
-                        ? note.content.slice(0, 160) + '...'
-                        : note.content}
-                    </p>
-                    {note.assignees.length > 0 && (
-                      <div className="meeting-card-footer">
-                        {note.assignees.map((a) => (
-                          <span key={a} className={`collab-badge collab-${a.toLowerCase()}`}>
-                            {a}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+              <div
+                className={`meeting-month-header ${collapsedMonths.has(month) ? 'collapsed' : ''}`}
+                onClick={() => toggleMonth(month)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className={`collapse-arrow ${collapsedMonths.has(month) ? '' : 'expanded'}`}>▶</span>
+                  <span className="meeting-month-date">{month}</span>
+                </div>
+                <span className="meeting-month-count">{notes.length} meetings</span>
               </div>
+              {!collapsedMonths.has(month) && (
+                <div className="meeting-month-notes">
+                  {notes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="meeting-card"
+                      onClick={() => setViewingId(note.id)}
+                    >
+                      <div className="meeting-card-header">
+                        <h3 className="meeting-card-title">{note.title}</h3>
+                        <span className="meeting-card-date">
+                          {new Date(note.date).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                      <p className="meeting-card-preview">
+                        {note.content.length > 160
+                          ? note.content.slice(0, 160) + '...'
+                          : note.content}
+                      </p>
+                      {note.assignees.length > 0 && (
+                        <div className="meeting-card-footer">
+                          {note.assignees.map((a) => (
+                            <span key={a} className={`collab-badge collab-${a.toLowerCase()}`}>
+                              {a}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
