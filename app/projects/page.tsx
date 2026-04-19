@@ -126,10 +126,18 @@ export default function ProjectsPage() {
       projectId,
       createdAt: new Date().toISOString(),
     };
+    const project = ctx.projects.find(p => p.id === projectId);
     const updatedProjects = ctx.projects.map(p =>
       p.id === projectId ? { ...p, tasks: [...(p.tasks || []), task] } : p
     );
-    save({ ...ctx, projects: updatedProjects });
+    saveWithActivity(
+      { ...ctx, projects: updatedProjects },
+      {
+        type: 'reminder_created',
+        description: `Created task: "${task.title}"`,
+        metadata: { taskId: task.id, projectId, projectName: project?.name, priority: task.priority },
+      }
+    );
     setNewTaskTitle('');
     setNewTaskPriority('medium');
     setNewTaskAssignees([]);
@@ -138,16 +146,29 @@ export default function ProjectsPage() {
   };
 
   const toggleTask = (projectId: string, taskId: string) => {
+    const project = ctx.projects.find(p => p.id === projectId);
+    const task = project?.tasks?.find(t => t.id === taskId);
+    if (!task) return;
+    const newDone = !task.done;
     const updatedProjects = ctx.projects.map(p => {
       if (p.id !== projectId) return p;
       return {
         ...p,
         tasks: (p.tasks || []).map(t =>
-          t.id === taskId ? { ...t, done: !t.done } : t
+          t.id === taskId ? { ...t, done: newDone } : t
         ),
       };
     });
-    save({ ...ctx, projects: updatedProjects });
+    const updatedCtx = { ...ctx, projects: updatedProjects };
+    if (newDone) {
+      saveWithActivity(updatedCtx, {
+        type: 'reminder_completed',
+        description: `Completed task: "${task.title}"`,
+        metadata: { taskId, projectId, projectName: project?.name },
+      });
+    } else {
+      save(updatedCtx);
+    }
   };
 
   const deleteTask = (projectId: string, taskId: string) => {

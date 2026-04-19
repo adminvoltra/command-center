@@ -124,7 +124,7 @@ export default function GoalsPage() {
     <main className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Weekly Goals</h1>
+          <h1 className="page-title">Tasks</h1>
           <p className="page-subtitle">
             {doneCount} of {totalCount} completed ({progress}%)
           </p>

@@ -150,7 +150,7 @@ function CollapsiblePhaseField({ label, value, onSave, placeholder }: {
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.id as string;
-  const { ctx, save, isLoading } = useAppContext();
+  const { ctx, save, saveWithActivity, isLoading } = useAppContext();
 
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [addingStepFor, setAddingStepFor] = useState<string | null>(null);
@@ -278,7 +278,18 @@ export default function ProjectDetailPage() {
       projectId,
       createdAt: new Date().toISOString(),
     };
-    updateProject({ tasks: [...tasks, task] });
+    const updatedTasks = [...tasks, task];
+    saveWithActivity(
+      {
+        ...ctx,
+        projects: ctx.projects.map(p => p.id === projectId ? { ...p, tasks: updatedTasks, lastTouched: new Date().toISOString() } : p),
+      },
+      {
+        type: 'reminder_created',
+        description: `Created task: "${task.title}"`,
+        metadata: { taskId: task.id, projectId, projectName: project.name, priority: task.priority },
+      }
+    );
     setNewTaskTitle('');
     setNewTaskPriority('medium');
     setNewTaskAssignees([]);
@@ -287,7 +298,23 @@ export default function ProjectDetailPage() {
   };
 
   const toggleTask = (taskId: string) => {
-    updateProject({ tasks: tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t) });
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const newDone = !task.done;
+    const updatedTasks = tasks.map(t => t.id === taskId ? { ...t, done: newDone } : t);
+    const updatedCtx = {
+      ...ctx,
+      projects: ctx.projects.map(p => p.id === projectId ? { ...p, tasks: updatedTasks, lastTouched: new Date().toISOString() } : p),
+    };
+    if (newDone) {
+      saveWithActivity(updatedCtx, {
+        type: 'reminder_completed',
+        description: `Completed task: "${task.title}"`,
+        metadata: { taskId, projectId, projectName: project.name },
+      });
+    } else {
+      save(updatedCtx);
+    }
   };
 
   const deleteTask = (taskId: string) => {

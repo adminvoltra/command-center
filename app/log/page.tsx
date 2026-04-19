@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
 import type { ActivityType } from '@/lib/context';
 
 const activityTypes: { value: ActivityType; label: string }[] = [
-  { value: 'goal_completed', label: 'Goal Completed' },
-  { value: 'project_completed', label: 'Project Completed' },
+  { value: 'goal_created', label: 'Task Created' },
+  { value: 'goal_completed', label: 'Task Completed' },
+  { value: 'project_created', label: 'Project Created' },
   { value: 'project_progress', label: 'Project Progress' },
-  { value: 'reminder_completed', label: 'Task Completed' },
+  { value: 'project_completed', label: 'Project Completed' },
+  { value: 'reminder_created', label: 'Todo Created' },
+  { value: 'reminder_completed', label: 'Todo Completed' },
   { value: 'schedule_completed', label: 'Schedule Block Done' },
 ];
 
@@ -23,7 +26,15 @@ export default function ActivityLogPage() {
   });
   const [filterType, setFilterType] = useState<ActivityType | 'all'>('all');
   const [filterDays, setFilterDays] = useState(7);
+  const [searchQuery, setSearchQuery] = useState('');
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, filterDays, searchQuery, pageSize]);
 
   const toggleDay = (date: string) => {
     setCollapsedDays(prev => {
@@ -61,12 +72,34 @@ export default function ActivityLogPage() {
 
   // Get activities within filter range
   const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - filterDays);
+  if (filterDays === 1) {
+    cutoffDate.setHours(0, 0, 0, 0);
+  } else {
+    cutoffDate.setDate(cutoffDate.getDate() - filterDays);
+  }
 
-  const activities = (ctx.activityLog || [])
-    .filter(a => new Date(a.timestamp) >= cutoffDate)
+  const activitiesInRange = (ctx.activityLog || [])
+    .filter(a => new Date(a.timestamp) >= cutoffDate);
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredActivities = activitiesInRange
     .filter(a => filterType === 'all' || a.type === filterType)
+    .filter(a => {
+      if (!normalizedQuery) return true;
+      return (
+        a.description.toLowerCase().includes(normalizedQuery) ||
+        a.type.toLowerCase().includes(normalizedQuery)
+      );
+    })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  // Paginate
+  const totalFiltered = filteredActivities.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageEnd = pageStart + pageSize;
+  const activities = filteredActivities.slice(pageStart, pageEnd);
 
   // Group by date
   const groupedActivities: Record<string, typeof activities> = {};
@@ -82,27 +115,40 @@ export default function ActivityLogPage() {
     groupedActivities[date].push(activity);
   });
 
-  // Calculate stats
-  const totalActivities = activities.length;
-  const goalsCompleted = activities.filter(a => a.type === 'goal_completed').length;
-  const projectsProgressed = activities.filter(a => a.type === 'project_progress' || a.type === 'project_completed').length;
-  const tasksCompleted = activities.filter(a => a.type === 'reminder_completed').length;
+  // Calculate stats — always use activitiesInRange so KPIs reflect the time window, not the type filter
+  const totalActivities = activitiesInRange.length;
+  const goalsCompleted = activitiesInRange.filter(a => a.type === 'goal_completed').length;
+  const projectsProgressed = activitiesInRange.filter(a => a.type === 'project_progress' || a.type === 'project_completed').length;
+  const tasksCompleted = activitiesInRange.filter(a => a.type === 'reminder_completed').length;
 
   // Get type color
   const getTypeColor = (type: ActivityType) => {
     switch (type) {
       case 'goal_completed': return 'var(--success)';
+      case 'goal_created': return 'var(--success)';
       case 'project_completed': return 'var(--gold)';
       case 'project_progress': return 'var(--info)';
+      case 'project_created': return 'var(--info)';
       case 'reminder_completed': return 'var(--warning)';
+      case 'reminder_created': return 'var(--warning)';
       case 'schedule_completed': return 'var(--slate)';
       default: return 'var(--text-3)';
     }
   };
 
-  // Format type label
+  // Format type label — remap reminder_* to Task for consistency with UI
   const formatType = (type: ActivityType) => {
-    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const labels: Record<ActivityType, string> = {
+      goal_created: 'Task Created',
+      goal_completed: 'Task Completed',
+      project_created: 'Project Created',
+      project_progress: 'Project Progress',
+      project_completed: 'Project Completed',
+      reminder_created: 'Todo Created',
+      reminder_completed: 'Todo Completed',
+      schedule_completed: 'Schedule Block Done',
+    };
+    return labels[type] || type;
   };
 
   return (
@@ -127,7 +173,7 @@ export default function ActivityLogPage() {
         </div>
         <div className="log-stat">
           <span className="log-stat-value" style={{ color: 'var(--success)' }}>{goalsCompleted}</span>
-          <span className="log-stat-label">Goals Completed</span>
+          <span className="log-stat-label">Tasks</span>
         </div>
         <div className="log-stat">
           <span className="log-stat-value" style={{ color: 'var(--info)' }}>{projectsProgressed}</span>
@@ -135,7 +181,7 @@ export default function ActivityLogPage() {
         </div>
         <div className="log-stat">
           <span className="log-stat-value" style={{ color: 'var(--warning)' }}>{tasksCompleted}</span>
-          <span className="log-stat-label">Tasks Done</span>
+          <span className="log-stat-label">Todos Done</span>
         </div>
       </div>
 
@@ -169,9 +215,37 @@ export default function ActivityLogPage() {
             ))}
           </select>
         </div>
+        <div className="filter-group" style={{ flex: 1, minWidth: 180 }}>
+          <label>Search</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search descriptions..."
+              className="filter-select"
+              style={{ width: '100%', paddingRight: searchQuery ? 28 : undefined }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 2 }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Activity List */}
+      {totalFiltered > 0 && (
+        <div className="log-pagination-summary">
+          Showing {pageStart + 1}–{Math.min(pageEnd, totalFiltered)} of {totalFiltered}
+        </div>
+      )}
       {Object.keys(groupedActivities).length > 0 ? (
         <div className="log-list">
           {Object.entries(groupedActivities).map(([date, dayActivities]) => (
@@ -221,11 +295,45 @@ export default function ActivityLogPage() {
       ) : (
         <div className="empty-state">
           <p className="empty-state-text">
-            No activities logged in this time period.
+            {normalizedQuery ? `No activities match "${searchQuery}".` : 'No activities logged in this time period.'}
           </p>
           <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
             Log Your First Entry
           </button>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="log-pagination">
+          <button
+            className="btn btn-small"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            ← Prev
+          </button>
+          <span className="log-pagination-info">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className="btn btn-small"
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next →
+          </button>
+          <select
+            value={pageSize}
+            onChange={e => setPageSize(Number(e.target.value))}
+            className="filter-select"
+            style={{ marginLeft: 'auto', width: 'auto' }}
+            aria-label="Per page"
+          >
+            <option value={10}>10 / page</option>
+            <option value={25}>25 / page</option>
+            <option value={50}>50 / page</option>
+            <option value={100}>100 / page</option>
+          </select>
         </div>
       )}
 

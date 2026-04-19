@@ -25,6 +25,16 @@ const emptyEvent: Omit<ScheduleEvent, 'id'> = {
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7am - 8pm
 
+function formatTime(time: string | undefined): string {
+  if (!time) return '';
+  const [h, m] = time.split(':');
+  const hour = parseInt(h, 10);
+  if (Number.isNaN(hour)) return time;
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${displayHour}:${m} ${period}`;
+}
+
 export default function SchedulePage() {
   const { ctx, save, isLoading } = useAppContext();
   const [view, setView] = useState<ViewMode>('monthly');
@@ -35,6 +45,7 @@ export default function SchedulePage() {
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [collabFilter, setCollabFilter] = useState<string>('all');
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
   const allEvents = ctx.scheduleEvents || [];
   const events = collabFilter === 'all'
@@ -188,16 +199,35 @@ export default function SchedulePage() {
               <div
                 key={dateStr}
                 className={`calendar-day ${!isSameMonth(day, currentDate) ? 'other-month' : ''} ${isToday(day) ? 'today' : ''} ${selectedDate === dateStr ? 'selected' : ''}`}
-                onClick={() => setSelectedDate(dateStr === selectedDate ? null : dateStr)}
+                onClick={() => { setExpandedEventId(null); setSelectedDate(dateStr === selectedDate ? null : dateStr); }}
                 onDoubleClick={() => openAddForDate(day)}
               >
                 <div className="calendar-day-number">{format(day, 'd')}</div>
                 <div className="calendar-day-events">
                   {dayEvents.slice(0, 3).map(ev => (
-                    <div key={ev.id} className="calendar-event-chip" onClick={e => { e.stopPropagation(); setEditingEvent(ev); }}>
-                      {ev.startTime && <span className="event-time">{ev.startTime}</span>}
-                      <span>{ev.title}</span>
-                    </div>
+                    expandedEventId === ev.id ? (
+                      <div key={ev.id} className="event-expanded" onClick={e => e.stopPropagation()}>
+                        <div className="event-expanded-header">
+                          <span className="event-expanded-title">{ev.title}</span>
+                          <button className="event-expanded-close" onClick={() => setExpandedEventId(null)} aria-label="Close">×</button>
+                        </div>
+                        {(ev.startTime || ev.endTime) && (
+                          <div className="event-expanded-time">
+                            {ev.startTime && ev.endTime ? `${formatTime(ev.startTime)} – ${formatTime(ev.endTime)}` : formatTime(ev.startTime)}
+                          </div>
+                        )}
+                        {ev.assignees.length > 0 && <CollaboratorBadges assignees={ev.assignees} />}
+                        {ev.notes && <div className="event-expanded-notes">{ev.notes}</div>}
+                        <div className="event-expanded-actions">
+                          <button className="btn btn-small" onClick={() => { setExpandedEventId(null); setEditingEvent(ev); }}>Edit</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={ev.id} className="calendar-event-chip" onClick={e => { e.stopPropagation(); setExpandedEventId(ev.id); }}>
+                        {ev.startTime && <span className="event-time">{formatTime(ev.startTime)}</span>}
+                        <span className="event-chip-title">{ev.title}</span>
+                      </div>
+                    )
                   ))}
                   {dayEvents.length > 3 && (
                     <div className="calendar-event-more">+{dayEvents.length - 3} more</div>
@@ -239,10 +269,29 @@ export default function SchedulePage() {
                     }}
                   >
                     {hourEvents.map(ev => (
-                      <div key={ev.id} className="week-event" onClick={() => setEditingEvent(ev)}>
-                        <span className="week-event-title">{ev.title}</span>
-                        <CollaboratorBadges assignees={ev.assignees} />
-                      </div>
+                      expandedEventId === ev.id ? (
+                        <div key={ev.id} className="event-expanded" onClick={e => e.stopPropagation()}>
+                          <div className="event-expanded-header">
+                            <span className="event-expanded-title">{ev.title}</span>
+                            <button className="event-expanded-close" onClick={() => setExpandedEventId(null)} aria-label="Close">×</button>
+                          </div>
+                          {(ev.startTime || ev.endTime) && (
+                            <div className="event-expanded-time">
+                              {ev.startTime && ev.endTime ? `${formatTime(ev.startTime)} – ${formatTime(ev.endTime)}` : formatTime(ev.startTime)}
+                            </div>
+                          )}
+                          {ev.assignees.length > 0 && <CollaboratorBadges assignees={ev.assignees} />}
+                          {ev.notes && <div className="event-expanded-notes">{ev.notes}</div>}
+                          <div className="event-expanded-actions">
+                            <button className="btn btn-small" onClick={() => { setExpandedEventId(null); setEditingEvent(ev); }}>Edit</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={ev.id} className="week-event" onClick={e => { e.stopPropagation(); setExpandedEventId(ev.id); }}>
+                          {ev.startTime && <span className="week-event-time">{formatTime(ev.startTime)}</span>}
+                          <span className="week-event-title">{ev.title}</span>
+                        </div>
+                      )
                     ))}
                   </div>
                 );
@@ -266,7 +315,7 @@ export default function SchedulePage() {
               {selectedDateEvents.map(ev => (
                 <div key={ev.id} className="day-event-card" onClick={() => setEditingEvent(ev)}>
                   <div className="day-event-time">
-                    {ev.startTime && ev.endTime ? `${ev.startTime} – ${ev.endTime}` : ev.startTime || 'All day'}
+                    {ev.startTime && ev.endTime ? `${formatTime(ev.startTime)} – ${formatTime(ev.endTime)}` : formatTime(ev.startTime) || 'All day'}
                   </div>
                   <div className="day-event-title">{ev.title}</div>
                   <CollaboratorBadges assignees={ev.assignees} />

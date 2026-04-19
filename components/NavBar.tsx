@@ -14,6 +14,7 @@ const navItems = [
   { href: '/meetings', label: 'Meetings' },
   { href: '/log', label: 'Work Log' },
   { href: '/experiments', label: 'AI Lab' },
+  { href: '/admin', label: 'Admin' },
 ];
 
 export default function NavBar() {
