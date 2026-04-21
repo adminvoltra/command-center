@@ -43,7 +43,7 @@ export default function AdminPage() {
         </div>
         <div className="mc-stat">
           <span className="mc-stat-value">{scheduleCount}</span>
-          <span className="mc-stat-label">Schedule Events</span>
+          <span className="mc-stat-label">Calendar Events</span>
         </div>
         <div className="mc-stat">
           <span className="mc-stat-value">{meetingCount}</span>

@@ -223,9 +223,12 @@ export default function ProjectsPage() {
             {ctx.projects.length} total projects across paid and growth categories
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
-          + Add Project
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <Link href="/projects/todos" className="btn">View all todos</Link>
+          <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
+            + Add Project
+          </button>
+        </div>
       </div>
 
       {/* Luke's Projects */}

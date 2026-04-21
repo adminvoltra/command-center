@@ -80,7 +80,7 @@ export default function Overview() {
   const totalGoals = ctx.weeklyGoals.length;
   const totalTasks = ctx.projects.reduce((sum, p) => sum + (p.tasks || []).length, 0);
   const doneTasks = ctx.projects.reduce((sum, p) => sum + (p.tasks || []).filter(t => t.done).length, 0);
-  const scheduleEvents = (ctx.scheduleEvents || []).length;
+  const upcomingEvents = (ctx.scheduleEvents || []).filter(e => e.date >= today).length;
 
   return (
     <main className="page-container overview-page">
@@ -103,7 +103,7 @@ export default function Overview() {
         </div>
         <div className="social-links" aria-label="Voltra social links">
           <a
-            href="https://github.com/VoltraLLC"
+            href="https://github.com/orgs/Voltra-LLC/"
             target="_blank"
             rel="noopener noreferrer"
             className="social-link"
@@ -127,7 +127,7 @@ export default function Overview() {
             </svg>
           </a>
           <a
-            href="https://www.facebook.com/VoltraLLC"
+            href="https://www.facebook.com/people/Voltra-LLC/61580799924687/"
             target="_blank"
             rel="noopener noreferrer"
             className="social-link"
@@ -149,15 +149,15 @@ export default function Overview() {
         </div>
         <div className="mc-stat">
           <span className="mc-stat-value">{doneTasks}/{totalTasks || '—'}</span>
-          <span className="mc-stat-label">Tasks Done</span>
+          <span className="mc-stat-label">Project Todos Done</span>
         </div>
         <div className="mc-stat">
           <span className="mc-stat-value">{doneGoals}/{totalGoals || '—'}</span>
-          <span className="mc-stat-label">Goals Done</span>
+          <span className="mc-stat-label">Tasks Done</span>
         </div>
         <div className="mc-stat">
-          <span className="mc-stat-value">{scheduleEvents}</span>
-          <span className="mc-stat-label">Scheduled Events</span>
+          <span className="mc-stat-value">{upcomingEvents}</span>
+          <span className="mc-stat-label">Upcoming Events</span>
         </div>
       </div>
 
@@ -223,7 +223,7 @@ export default function Overview() {
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <span className="nav-card-label">Goals</span>
+          <span className="nav-card-label">Tasks</span>
           <span className="nav-card-count">{doneGoals}/{totalGoals} done</span>
         </Link>
 
@@ -234,18 +234,18 @@ export default function Overview() {
               <polyline points="12 6 12 12 16 14" />
             </svg>
           </div>
-          <span className="nav-card-label">Schedule</span>
-          <span className="nav-card-count">{scheduleEvents} events</span>
+          <span className="nav-card-label">Calendar</span>
+          <span className="nav-card-count">{upcomingEvents} upcoming</span>
         </Link>
 
-        <Link href="/todos" className="nav-card">
+        <Link href="/projects/todos" className="nav-card">
           <div className="nav-card-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9 11l3 3L22 4" />
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
           </div>
-          <span className="nav-card-label">Todos</span>
+          <span className="nav-card-label">Project Todos</span>
           <span className="nav-card-count">{doneTasks}/{totalTasks}</span>
         </Link>
 

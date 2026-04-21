@@ -65,6 +65,8 @@ export interface Goal {
   priority: Priority;
   done: boolean;
   assignees?: Collaborator[];
+  createdBy?: Collaborator;
+  createdAt?: string;
 }
 
 export interface Reminder {

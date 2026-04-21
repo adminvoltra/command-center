@@ -14,15 +14,14 @@ const emptyGoal: Omit<Goal, 'id'> = {
   priority: 'medium',
   done: false,
   assignees: [],
+  createdBy: 'Luke',
 };
 
 export default function GoalsPage() {
   const { ctx, save, saveWithActivity, isLoading } = useAppContext();
   const [activeTab, setActiveTab] = useState<GoalTab>('overview');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
-  const [editPriority, setEditPriority] = useState<Priority>('medium');
-  const [editAssignees, setEditAssignees] = useState<Collaborator[]>([]);
+  const [viewingGoal, setViewingGoal] = useState<Goal | null>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newGoal, setNewGoal] = useState<Omit<Goal, 'id'>>(emptyGoal);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -47,10 +46,16 @@ export default function GoalsPage() {
     const goal: Goal = {
       ...newGoal,
       id: Date.now().toString(),
+      createdBy: newGoal.createdBy || 'Luke',
+      createdAt: new Date().toISOString(),
     };
     saveWithActivity(
       { ...ctx, weeklyGoals: [...ctx.weeklyGoals, goal] },
-      { type: 'goal_created', description: `Created goal: "${newGoal.text}"`, metadata: { priority: newGoal.priority } }
+      {
+        type: 'goal_created',
+        description: `Created task: "${newGoal.text}"`,
+        metadata: { priority: newGoal.priority, createdBy: goal.createdBy },
+      }
     );
     setNewGoal(emptyGoal);
     setIsAddModalOpen(false);
@@ -78,31 +83,24 @@ export default function GoalsPage() {
     }
   };
 
-  // Start editing
-  const startEdit = (goal: Goal) => {
-    setEditingId(goal.id);
-    setEditText(goal.text);
-    setEditPriority(goal.priority);
-    setEditAssignees(goal.assignees || []);
-  };
-
   // Save edit
   const saveEdit = () => {
-    if (!editText.trim() || !editingId) return;
+    if (!editingGoal || !editingGoal.text.trim()) return;
     save({
       ...ctx,
       weeklyGoals: ctx.weeklyGoals.map((g: Goal) =>
-        g.id === editingId ? { ...g, text: editText, priority: editPriority, assignees: editAssignees } : g
+        g.id === editingGoal.id ? editingGoal : g
       ),
     });
-    setEditingId(null);
+    setEditingGoal(null);
   };
 
   // DELETE
   const deleteGoal = (id: string) => {
     save({ ...ctx, weeklyGoals: ctx.weeklyGoals.filter(g => g.id !== id) });
     setDeleteConfirm(null);
-    setEditingId(null);
+    setEditingGoal(null);
+    setViewingGoal(null);
   };
 
   const doneCount = filteredGoals.filter(g => g.done).length;
@@ -172,62 +170,142 @@ export default function GoalsPage() {
       <div className="goal-list">
         {sortedGoals.map((goal: Goal) => (
           <div key={goal.id} className={`goal-item ${goal.done ? 'done' : ''}`}>
-            {editingId === goal.id ? (
-              <div className="goal-edit-form">
-                <input
-                  type="text"
-                  value={editText}
-                  onChange={e => setEditText(e.target.value)}
-                  className="edit-input"
-                  autoFocus
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') saveEdit();
-                    if (e.key === 'Escape') setEditingId(null);
-                  }}
-                />
-                <select
-                  value={editPriority}
-                  onChange={e => setEditPriority(e.target.value as Priority)}
-                  className="edit-select"
-                >
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <div style={{ marginTop: 'var(--space-sm)' }}>
-                  <label style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4, display: 'block' }}>Assignees</label>
-                  <CollaboratorPicker selected={editAssignees} onChange={setEditAssignees} />
+            <button className="goal-check" onClick={() => toggleGoal(goal.id)} type="button">
+              {goal.done ? '✓' : ''}
+            </button>
+            <div className="goal-content" onClick={() => setViewingGoal(goal)} style={{ cursor: 'pointer', flex: 1 }}>
+              <span className="goal-text">{goal.text}</span>
+              {(goal.assignees || []).length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <CollaboratorBadges assignees={goal.assignees || []} />
                 </div>
-                <div className="goal-edit-actions">
-                  <button className="btn btn-small" onClick={saveEdit}>Save</button>
-                  <button className="btn btn-small" onClick={() => setEditingId(null)}>Cancel</button>
-                  <button className="btn btn-small btn-danger" onClick={() => setDeleteConfirm(goal.id)}>Delete</button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <button className="goal-check" onClick={() => toggleGoal(goal.id)} type="button">
-                  {goal.done ? '✓' : ''}
-                </button>
-                <div className="goal-content" onClick={() => startEdit(goal)} style={{ cursor: 'pointer', flex: 1 }}>
-                  <span className="goal-text">{goal.text}</span>
-                  {(goal.assignees || []).length > 0 && (
-                    <div style={{ marginTop: 4 }}>
-                      <CollaboratorBadges assignees={goal.assignees || []} />
-                    </div>
+              )}
+              {(goal.createdBy || goal.createdAt) && (
+                <div className="goal-meta">
+                  {goal.createdBy && <span>Created by {goal.createdBy}</span>}
+                  {goal.createdBy && goal.createdAt && <span> · </span>}
+                  {goal.createdAt && (
+                    <span>{new Date(goal.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   )}
                 </div>
-                <div className={`priority-pip priority-${goal.priority}`} title={goal.priority} />
-              </>
-            )}
+              )}
+            </div>
+            <div className={`priority-pip priority-${goal.priority}`} title={goal.priority} />
           </div>
         ))}
         {sortedGoals.length === 0 && (
           <div className="empty-state">
-            {activeTab === 'overview' ? 'No goals yet. Add one to get started.' : `No goals assigned to ${activeTab} yet.`}
+            {activeTab === 'overview' ? 'No tasks yet. Add one to get started.' : `No tasks assigned to ${activeTab} yet.`}
           </div>
         )}
       </div>
+
+      {/* View Task Modal */}
+      <Modal isOpen={viewingGoal !== null} onClose={() => setViewingGoal(null)} title="Task Details">
+        {viewingGoal && (
+          <div className="event-view">
+            <h3 className="event-view-title">{viewingGoal.text}</h3>
+            <div className="event-view-row">
+              <span className="event-view-label">Priority</span>
+              <div className="event-view-value">
+                <span className={`badge badge-${viewingGoal.priority}`}>{viewingGoal.priority}</span>
+              </div>
+            </div>
+            <div className="event-view-row">
+              <span className="event-view-label">Status</span>
+              <div className="event-view-value">{viewingGoal.done ? 'Completed' : 'Open'}</div>
+            </div>
+            {(viewingGoal.assignees || []).length > 0 && (
+              <div className="event-view-row">
+                <span className="event-view-label">Assignees</span>
+                <div className="event-view-value">
+                  <CollaboratorBadges assignees={viewingGoal.assignees || []} />
+                </div>
+              </div>
+            )}
+            {viewingGoal.createdBy && (
+              <div className="event-view-row">
+                <span className="event-view-label">Created by</span>
+                <div className="event-view-value">{viewingGoal.createdBy}</div>
+              </div>
+            )}
+            {viewingGoal.createdAt && (
+              <div className="event-view-row">
+                <span className="event-view-label">Created</span>
+                <div className="event-view-value event-view-subtle">
+                  {new Date(viewingGoal.createdAt).toLocaleString()}
+                </div>
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="btn btn-danger" onClick={() => setDeleteConfirm(viewingGoal.id)}>Delete</button>
+              <button className="btn" onClick={() => setViewingGoal(null)}>Close</button>
+              <button className="btn btn-primary" onClick={() => { setEditingGoal(viewingGoal); setViewingGoal(null); }}>Edit</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit Task Modal */}
+      <Modal isOpen={editingGoal !== null} onClose={() => setEditingGoal(null)} title="Edit Task">
+        {editingGoal && (
+          <div className="edit-form">
+            <div className="edit-row">
+              <label>Task *</label>
+              <input
+                type="text"
+                value={editingGoal.text}
+                onChange={e => setEditingGoal({ ...editingGoal, text: e.target.value })}
+                className="edit-input"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && editingGoal.text.trim()) saveEdit();
+                  if (e.key === 'Escape') setEditingGoal(null);
+                }}
+              />
+            </div>
+            <div className="edit-row">
+              <label>Priority</label>
+              <select
+                value={editingGoal.priority}
+                onChange={e => setEditingGoal({ ...editingGoal, priority: e.target.value as Priority })}
+                className="edit-select"
+              >
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div className="edit-row">
+              <label>Assignees</label>
+              <CollaboratorPicker selected={editingGoal.assignees || []} onChange={assignees => setEditingGoal({ ...editingGoal, assignees })} />
+            </div>
+            <div className="edit-row">
+              <label>Created By</label>
+              <select
+                value={editingGoal.createdBy || 'Luke'}
+                onChange={e => setEditingGoal({ ...editingGoal, createdBy: e.target.value as Collaborator })}
+                className="edit-select"
+              >
+                <option value="Luke">Luke</option>
+                <option value="Aidan">Aidan</option>
+              </select>
+            </div>
+            {editingGoal.createdAt && (
+              <div className="edit-row">
+                <label style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                  Created {new Date(editingGoal.createdAt).toLocaleString()}
+                </label>
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="btn btn-danger" onClick={() => setDeleteConfirm(editingGoal.id)}>Delete</button>
+              <button className="btn" onClick={() => setEditingGoal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveEdit} disabled={!editingGoal.text.trim()}>Save</button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Add Task Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Task">
@@ -259,6 +337,17 @@ export default function GoalsPage() {
           <div className="edit-row">
             <label>Assignees</label>
             <CollaboratorPicker selected={newGoal.assignees || []} onChange={assignees => setNewGoal({ ...newGoal, assignees })} />
+          </div>
+          <div className="edit-row">
+            <label>Created By *</label>
+            <select
+              value={newGoal.createdBy || 'Luke'}
+              onChange={e => setNewGoal({ ...newGoal, createdBy: e.target.value as Collaborator })}
+              className="edit-select"
+            >
+              <option value="Luke">Luke</option>
+              <option value="Aidan">Aidan</option>
+            </select>
           </div>
           <div className="modal-actions">
             <button className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>

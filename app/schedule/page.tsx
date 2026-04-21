@@ -42,10 +42,10 @@ export default function SchedulePage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState<Omit<ScheduleEvent, 'id'>>(emptyEvent);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewingEvent, setViewingEvent] = useState<ScheduleEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [collabFilter, setCollabFilter] = useState<string>('all');
-  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
   const allEvents = ctx.scheduleEvents || [];
   const events = collabFilter === 'all'
@@ -126,6 +126,7 @@ export default function SchedulePage() {
     save({ ...ctx, scheduleEvents: events.filter(e => e.id !== id) });
     setDeleteConfirm(null);
     setEditingEvent(null);
+    setViewingEvent(null);
     setSelectedDate(null);
   };
 
@@ -143,7 +144,7 @@ export default function SchedulePage() {
     <main className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Schedule</h1>
+          <h1 className="page-title">Calendar</h1>
           <p className="page-subtitle">
             {events.length} events scheduled
           </p>
@@ -199,35 +200,16 @@ export default function SchedulePage() {
               <div
                 key={dateStr}
                 className={`calendar-day ${!isSameMonth(day, currentDate) ? 'other-month' : ''} ${isToday(day) ? 'today' : ''} ${selectedDate === dateStr ? 'selected' : ''}`}
-                onClick={() => { setExpandedEventId(null); setSelectedDate(dateStr === selectedDate ? null : dateStr); }}
+                onClick={() => setSelectedDate(dateStr === selectedDate ? null : dateStr)}
                 onDoubleClick={() => openAddForDate(day)}
               >
                 <div className="calendar-day-number">{format(day, 'd')}</div>
                 <div className="calendar-day-events">
                   {dayEvents.slice(0, 3).map(ev => (
-                    expandedEventId === ev.id ? (
-                      <div key={ev.id} className="event-expanded" onClick={e => e.stopPropagation()}>
-                        <div className="event-expanded-header">
-                          <span className="event-expanded-title">{ev.title}</span>
-                          <button className="event-expanded-close" onClick={() => setExpandedEventId(null)} aria-label="Close">×</button>
-                        </div>
-                        {(ev.startTime || ev.endTime) && (
-                          <div className="event-expanded-time">
-                            {ev.startTime && ev.endTime ? `${formatTime(ev.startTime)} – ${formatTime(ev.endTime)}` : formatTime(ev.startTime)}
-                          </div>
-                        )}
-                        {ev.assignees.length > 0 && <CollaboratorBadges assignees={ev.assignees} />}
-                        {ev.notes && <div className="event-expanded-notes">{ev.notes}</div>}
-                        <div className="event-expanded-actions">
-                          <button className="btn btn-small" onClick={() => { setExpandedEventId(null); setEditingEvent(ev); }}>Edit</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div key={ev.id} className="calendar-event-chip" onClick={e => { e.stopPropagation(); setExpandedEventId(ev.id); }}>
-                        {ev.startTime && <span className="event-time">{formatTime(ev.startTime)}</span>}
-                        <span className="event-chip-title">{ev.title}</span>
-                      </div>
-                    )
+                    <div key={ev.id} className="calendar-event-chip" onClick={e => { e.stopPropagation(); setViewingEvent(ev); }}>
+                      {ev.startTime && <span className="event-time">{formatTime(ev.startTime)}</span>}
+                      <span className="event-chip-title">{ev.title}</span>
+                    </div>
                   ))}
                   {dayEvents.length > 3 && (
                     <div className="calendar-event-more">+{dayEvents.length - 3} more</div>
@@ -269,29 +251,10 @@ export default function SchedulePage() {
                     }}
                   >
                     {hourEvents.map(ev => (
-                      expandedEventId === ev.id ? (
-                        <div key={ev.id} className="event-expanded" onClick={e => e.stopPropagation()}>
-                          <div className="event-expanded-header">
-                            <span className="event-expanded-title">{ev.title}</span>
-                            <button className="event-expanded-close" onClick={() => setExpandedEventId(null)} aria-label="Close">×</button>
-                          </div>
-                          {(ev.startTime || ev.endTime) && (
-                            <div className="event-expanded-time">
-                              {ev.startTime && ev.endTime ? `${formatTime(ev.startTime)} – ${formatTime(ev.endTime)}` : formatTime(ev.startTime)}
-                            </div>
-                          )}
-                          {ev.assignees.length > 0 && <CollaboratorBadges assignees={ev.assignees} />}
-                          {ev.notes && <div className="event-expanded-notes">{ev.notes}</div>}
-                          <div className="event-expanded-actions">
-                            <button className="btn btn-small" onClick={() => { setExpandedEventId(null); setEditingEvent(ev); }}>Edit</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div key={ev.id} className="week-event" onClick={e => { e.stopPropagation(); setExpandedEventId(ev.id); }}>
-                          {ev.startTime && <span className="week-event-time">{formatTime(ev.startTime)}</span>}
-                          <span className="week-event-title">{ev.title}</span>
-                        </div>
-                      )
+                      <div key={ev.id} className="week-event" onClick={e => { e.stopPropagation(); setViewingEvent(ev); }}>
+                        {ev.startTime && <span className="week-event-time">{formatTime(ev.startTime)}</span>}
+                        <span className="week-event-title">{ev.title}</span>
+                      </div>
                     ))}
                   </div>
                 );
@@ -313,7 +276,7 @@ export default function SchedulePage() {
           ) : (
             <div className="day-detail-events">
               {selectedDateEvents.map(ev => (
-                <div key={ev.id} className="day-event-card" onClick={() => setEditingEvent(ev)}>
+                <div key={ev.id} className="day-event-card" onClick={() => setViewingEvent(ev)}>
                   <div className="day-event-time">
                     {ev.startTime && ev.endTime ? `${formatTime(ev.startTime)} – ${formatTime(ev.endTime)}` : formatTime(ev.startTime) || 'All day'}
                   </div>
@@ -368,6 +331,56 @@ export default function SchedulePage() {
             <button className="btn btn-primary" onClick={addEvent} disabled={!newEvent.title.trim()}>Add Event</button>
           </div>
         </div>
+      </Modal>
+
+      {/* View Event Modal */}
+      <Modal isOpen={viewingEvent !== null} onClose={() => setViewingEvent(null)} title="Event Details">
+        {viewingEvent && (() => {
+          const project = viewingEvent.projectId ? ctx.projects.find(p => p.id === viewingEvent.projectId) : null;
+          const dateLabel = new Date(viewingEvent.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+          const timeLabel = viewingEvent.startTime && viewingEvent.endTime
+            ? `${formatTime(viewingEvent.startTime)} – ${formatTime(viewingEvent.endTime)}`
+            : viewingEvent.startTime
+              ? formatTime(viewingEvent.startTime)
+              : 'All day';
+          return (
+            <div className="event-view">
+              <h3 className="event-view-title">{viewingEvent.title}</h3>
+              <div className="event-view-row">
+                <span className="event-view-label">When</span>
+                <div className="event-view-value">
+                  <div>{dateLabel}</div>
+                  <div className="event-view-subtle">{timeLabel}</div>
+                </div>
+              </div>
+              {viewingEvent.assignees.length > 0 && (
+                <div className="event-view-row">
+                  <span className="event-view-label">Assignees</span>
+                  <div className="event-view-value">
+                    <CollaboratorBadges assignees={viewingEvent.assignees} />
+                  </div>
+                </div>
+              )}
+              {project && (
+                <div className="event-view-row">
+                  <span className="event-view-label">Project</span>
+                  <div className="event-view-value">{project.name}</div>
+                </div>
+              )}
+              {viewingEvent.notes && (
+                <div className="event-view-row">
+                  <span className="event-view-label">Notes</span>
+                  <div className="event-view-value event-view-notes">{viewingEvent.notes}</div>
+                </div>
+              )}
+              <div className="modal-actions">
+                <button className="btn btn-danger" onClick={() => setDeleteConfirm(viewingEvent.id)}>Delete</button>
+                <button className="btn" onClick={() => setViewingEvent(null)}>Close</button>
+                <button className="btn btn-primary" onClick={() => { setEditingEvent(viewingEvent); setViewingEvent(null); }}>Edit</button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* Edit Event Modal */}

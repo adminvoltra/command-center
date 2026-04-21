@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import type { Task, Collaborator } from '@/lib/context';
 import { COLLABORATORS } from '@/lib/context';
 import { useAppContext } from '@/lib/useAppContext';
@@ -133,9 +134,12 @@ export default function TodosPage() {
 
   return (
     <main className="page-container">
+      <div style={{ marginBottom: 'var(--space-md)' }}>
+        <Link href="/projects" style={{ fontSize: 13, color: 'var(--text-3)', textDecoration: 'none' }}>← Projects</Link>
+      </div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Todos</h1>
+          <h1 className="page-title">Project Todos</h1>
           <p className="page-subtitle">
             {doneTasks}/{totalTasks} completed
             {overdueTasks > 0 && <span style={{ color: 'var(--error)', marginLeft: 'var(--space-sm)' }}>{overdueTasks} overdue</span>}
