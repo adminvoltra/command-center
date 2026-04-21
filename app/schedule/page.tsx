@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import {
-  startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, format, addMonths, subMonths,
-  addWeeks, subWeeks, isSameMonth, isSameDay, isToday,
+  startOfWeek, endOfWeek,
+  eachDayOfInterval, format,
+  addWeeks, subWeeks, isToday,
 } from 'date-fns';
 import type { ScheduleEvent, Collaborator } from '@/lib/context';
 import { useAppContext } from '@/lib/useAppContext';
@@ -52,12 +52,10 @@ export default function SchedulePage() {
     ? allEvents
     : allEvents.filter(e => e.assignees.includes(collabFilter as Collaborator));
 
-  // Month view days
+  // Month view days — rolling 5 weeks starting at the week containing currentDate
   const monthDays = useMemo(() => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const calStart = startOfWeek(monthStart);
-    const calEnd = endOfWeek(monthEnd);
+    const calStart = startOfWeek(currentDate);
+    const calEnd = endOfWeek(addWeeks(currentDate, 4));
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentDate]);
 
@@ -170,18 +168,18 @@ export default function SchedulePage() {
 
       {/* Calendar Navigation */}
       <div className="calendar-nav">
-        <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1))}>
+        <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? subWeeks(currentDate, 5) : subWeeks(currentDate, 1))}>
           ← Prev
         </button>
         <h2 className="calendar-title">
           {view === 'monthly'
-            ? format(currentDate, 'MMMM yyyy')
+            ? `${format(monthDays[0], 'MMM d')} – ${format(monthDays[monthDays.length - 1], 'MMM d, yyyy')}`
             : `Week of ${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`
           }
         </h2>
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <button className="btn btn-small" onClick={() => setCurrentDate(new Date())}>Today</button>
-          <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? addMonths(currentDate, 1) : addWeeks(currentDate, 1))}>
+          <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? addWeeks(currentDate, 5) : addWeeks(currentDate, 1))}>
             Next →
           </button>
         </div>
@@ -199,7 +197,7 @@ export default function SchedulePage() {
             return (
               <div
                 key={dateStr}
-                className={`calendar-day ${!isSameMonth(day, currentDate) ? 'other-month' : ''} ${isToday(day) ? 'today' : ''} ${selectedDate === dateStr ? 'selected' : ''}`}
+                className={`calendar-day ${isToday(day) ? 'today' : ''} ${selectedDate === dateStr ? 'selected' : ''}`}
                 onClick={() => setSelectedDate(dateStr === selectedDate ? null : dateStr)}
                 onDoubleClick={() => openAddForDate(day)}
               >
