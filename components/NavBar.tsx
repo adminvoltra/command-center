@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import ThemeToggleCompact from './ThemeToggleCompact';
 
 const navItems = [
   { href: '/', label: 'Overview' },
@@ -61,6 +62,7 @@ export default function NavBar() {
             <div className="status-indicator" />
             <span className="status-text">Live</span>
           </div>
+          <ThemeToggleCompact />
           <button
             className="mobile-menu-btn"
             onClick={() => setMobileOpen(!mobileOpen)}

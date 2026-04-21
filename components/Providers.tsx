@@ -2,7 +2,12 @@
 
 import { AppContextProvider } from '@/lib/AppContextProvider';
 import { ReactNode } from 'react';
+import { ThemeProvider } from './ThemeProvider';
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <AppContextProvider>{children}</AppContextProvider>;
+  return (
+    <ThemeProvider>
+      <AppContextProvider>{children}</AppContextProvider>
+    </ThemeProvider>
+  );
 }
