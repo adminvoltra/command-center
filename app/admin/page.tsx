@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAppContext } from '@/lib/useAppContext';
 
 export default function AdminPage() {
@@ -72,6 +73,14 @@ export default function AdminPage() {
           <p style={{ fontSize: 13, color: 'var(--text-3)' }}>
             Notion: {ctx.notionConnected ? 'Connected' : 'Not connected'}
           </p>
+        </section>
+
+        <section className="card">
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-1)', marginBottom: 'var(--space-sm)' }}>Work Log</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 'var(--space-md)' }}>
+            Full history of task, project, and goal activity across the workspace.
+          </p>
+          <Link href="/log" className="btn btn-primary">Open Work Log</Link>
         </section>
 
         <section className="card">

@@ -25,6 +25,13 @@ export default function GoalsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newGoal, setNewGoal] = useState<Omit<Goal, 'id'>>(emptyGoal);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [completedCollapsed, setCompletedCollapsed] = useState(true);
+
+  // Filter goals by tab
+  const filteredGoals = useMemo(() => {
+    if (activeTab === 'overview') return ctx.weeklyGoals;
+    return ctx.weeklyGoals.filter(g => (g.assignees || []).includes(activeTab as Collaborator));
+  }, [ctx.weeklyGoals, activeTab]);
 
   if (isLoading) {
     return (
@@ -33,12 +40,6 @@ export default function GoalsPage() {
       </main>
     );
   }
-
-  // Filter goals by tab
-  const filteredGoals = useMemo(() => {
-    if (activeTab === 'overview') return ctx.weeklyGoals;
-    return ctx.weeklyGoals.filter(g => (g.assignees || []).includes(activeTab as Collaborator));
-  }, [ctx.weeklyGoals, activeTab]);
 
   // CREATE
   const addGoal = () => {
@@ -107,12 +108,14 @@ export default function GoalsPage() {
   const totalCount = filteredGoals.length;
   const progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
-  // Sort goals
+  // Sort goals — open by priority, done by createdAt desc
   const priorityOrder = { high: 0, medium: 1, low: 2 };
-  const sortedGoals = [...filteredGoals].sort((a, b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1;
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
-  });
+  const openGoals = filteredGoals
+    .filter(g => !g.done)
+    .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  const doneGoals = filteredGoals
+    .filter(g => g.done)
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
   // Tab counts
   const lukeCount = ctx.weeklyGoals.filter(g => (g.assignees || []).includes('Luke')).length;
@@ -167,8 +170,8 @@ export default function GoalsPage() {
       </div>
 
       {/* Goal list */}
-      <div className="goal-list">
-        {sortedGoals.map((goal: Goal) => (
+      {(() => {
+        const renderGoal = (goal: Goal) => (
           <div key={goal.id} className={`goal-item ${goal.done ? 'done' : ''}`}>
             <button className="goal-check" onClick={() => toggleGoal(goal.id)} type="button">
               {goal.done ? '✓' : ''}
@@ -192,13 +195,48 @@ export default function GoalsPage() {
             </div>
             <div className={`priority-pip priority-${goal.priority}`} title={goal.priority} />
           </div>
-        ))}
-        {sortedGoals.length === 0 && (
-          <div className="empty-state">
-            {activeTab === 'overview' ? 'No tasks yet. Add one to get started.' : `No tasks assigned to ${activeTab} yet.`}
-          </div>
-        )}
-      </div>
+        );
+        return (
+          <>
+            <div className="goal-list">
+              {openGoals.length === 0 && doneGoals.length === 0 ? (
+                <div className="empty-state">
+                  {activeTab === 'overview' ? 'No tasks yet. Add one to get started.' : `No tasks assigned to ${activeTab} yet.`}
+                </div>
+              ) : (
+                openGoals.map(renderGoal)
+              )}
+              {openGoals.length === 0 && doneGoals.length > 0 && (
+                <div className="empty-state" style={{ padding: 'var(--space-md)' }}>
+                  All tasks completed.
+                </div>
+              )}
+            </div>
+
+            {doneGoals.length > 0 && (
+              <div className="completed-section" style={{ marginTop: 'var(--space-lg)' }}>
+                <button
+                  type="button"
+                  className={`log-day-header ${completedCollapsed ? 'collapsed' : ''}`}
+                  onClick={() => setCompletedCollapsed(v => !v)}
+                  style={{ width: '100%' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`collapse-arrow ${completedCollapsed ? '' : 'expanded'}`}>▶</span>
+                    <span className="log-day-date">Completed</span>
+                  </div>
+                  <span className="log-day-count">{doneGoals.length}</span>
+                </button>
+                {!completedCollapsed && (
+                  <div className="goal-list" style={{ marginTop: 'var(--space-sm)' }}>
+                    {doneGoals.map(renderGoal)}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* View Task Modal */}
       <Modal isOpen={viewingGoal !== null} onClose={() => setViewingGoal(null)} title="Task Details">

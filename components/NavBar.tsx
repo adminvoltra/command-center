@@ -11,7 +11,6 @@ const navItems = [
   { href: '/goals', label: 'Tasks' },
   { href: '/clients', label: 'Clients' },
   { href: '/meetings', label: 'Meetings' },
-  { href: '/log', label: 'Work Log' },
   { href: '/experiments', label: 'AI Lab' },
   { href: '/admin', label: 'Admin' },
 ];
