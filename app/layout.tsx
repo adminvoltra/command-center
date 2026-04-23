@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Voltra Mission Control',
   description: 'Operations dashboard for Voltra',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.svg',
     apple: '/branding/logo.png',
   },
 };
