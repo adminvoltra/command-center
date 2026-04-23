@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/lib/useAppContext';
 import { CollaboratorBadges } from '@/components/CollaboratorPicker';
+import { GLSLHills } from '@/components/ui/glsl-hills';
 
 const backgroundImages = [
   '/media/Gould_Vesturhorn-Mt.-Wave-Reflections-.jpg',
@@ -89,14 +90,24 @@ export default function Overview() {
       <div className="overview-overlay" />
 
       {/* Hero Banner */}
-      <div className="hero-banner" style={{ backgroundImage: `url('/branding/cover-header2.png')` }}>
+      <div className="hero-banner hero-banner-glsl">
+        <GLSLHills />
         <div className="hero-banner-overlay" />
+        <div className="hero-banner-content">
+          <div className="hero-banner-eyebrow">
+            <span className="hero-banner-pulse" aria-hidden="true" />
+            Voltra Mission Control
+          </div>
+          <h1 className="hero-banner-title">Overview</h1>
+          <p className="hero-banner-subtitle">
+            Projects, goals, meetings, and work logs — unified in one operational view for the Voltra team.
+          </p>
+        </div>
       </div>
 
       {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Overview</h1>
           <p className="page-subtitle">
             Last updated {new Date(ctx.lastUpdated).toLocaleString()}
           </p>

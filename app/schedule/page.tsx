@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   startOfWeek, endOfWeek,
   eachDayOfInterval, format,
@@ -10,8 +10,9 @@ import type { ScheduleEvent, Collaborator } from '@/lib/context';
 import { useAppContext } from '@/lib/useAppContext';
 import Modal from '@/components/Modal';
 import CollaboratorPicker, { CollaboratorBadges } from '@/components/CollaboratorPicker';
+import { EtherealShadow } from '@/components/ui/etheral-shadow';
 
-type ViewMode = 'monthly' | 'weekly';
+type ViewMode = 'monthly' | 'weekly' | '3d';
 
 const emptyEvent: Omit<ScheduleEvent, 'id'> = {
   title: '',
@@ -52,10 +53,10 @@ export default function SchedulePage() {
     ? allEvents
     : allEvents.filter(e => e.assignees.includes(collabFilter as Collaborator));
 
-  // Month view days — rolling 5 weeks starting at the week containing currentDate
+  // Month view days — rolling 4 weeks starting at the week containing currentDate
   const monthDays = useMemo(() => {
     const calStart = startOfWeek(currentDate);
-    const calEnd = endOfWeek(addWeeks(currentDate, 4));
+    const calEnd = endOfWeek(addWeeks(currentDate, 3));
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentDate]);
 
@@ -65,6 +66,38 @@ export default function SchedulePage() {
     const weekEnd = endOfWeek(currentDate);
     return eachDayOfInterval({ start: weekStart, end: weekEnd });
   }, [currentDate]);
+
+  // 3D wall reuses the same rolling 5-week span as the monthly view
+  const wallDays = monthDays;
+
+  // 3D tilt state (only used by 3d view)
+  const [tiltX, setTiltX] = useState(18);
+  const [tiltY, setTiltY] = useState(0);
+  const isDragging = useRef(false);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
+
+  const onWallWheel = (e: React.WheelEvent) => {
+    setTiltX(t => Math.max(0, Math.min(50, t + e.deltaY * 0.02)));
+    setTiltY(t => Math.max(-45, Math.min(45, t + e.deltaX * 0.05)));
+  };
+  const onWallPointerDown = (e: React.PointerEvent) => {
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  };
+  const onWallPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current || !dragStart.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    setTiltY(t => Math.max(-60, Math.min(60, t + dx * 0.1)));
+    setTiltX(t => Math.max(0, Math.min(60, t - dy * 0.1)));
+    dragStart.current = { x: e.clientX, y: e.clientY };
+  };
+  const onWallPointerUp = () => {
+    isDragging.current = false;
+    dragStart.current = null;
+  };
+  const resetTilt = () => { setTiltX(18); setTiltY(0); };
 
   // Pre-compute event lookups to avoid filtering per-cell
   const eventsByDate = useMemo(() => {
@@ -158,6 +191,7 @@ export default function SchedulePage() {
       <div className="schedule-tabs">
         <button className={`schedule-tab ${view === 'monthly' ? 'active' : ''}`} onClick={() => setView('monthly')}>Monthly</button>
         <button className={`schedule-tab ${view === 'weekly' ? 'active' : ''}`} onClick={() => setView('weekly')}>Weekly</button>
+        <button className={`schedule-tab ${view === '3d' ? 'active' : ''}`} onClick={() => setView('3d')}>3D</button>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Filter:</span>
           <button className={`collab-chip ${collabFilter === 'all' ? 'selected' : ''}`} style={collabFilter === 'all' ? { background: 'var(--surface-2)', color: 'var(--text-1)', borderColor: 'var(--text-3)' } : {}} onClick={() => setCollabFilter('all')}>All</button>
@@ -168,18 +202,25 @@ export default function SchedulePage() {
 
       {/* Calendar Navigation */}
       <div className="calendar-nav">
-        <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? subWeeks(currentDate, 5) : subWeeks(currentDate, 1))}>
+        <button className="btn btn-small" onClick={() => setCurrentDate(
+          view === 'weekly' ? subWeeks(currentDate, 1) : subWeeks(currentDate, 4)
+        )}>
           ← Prev
         </button>
         <h2 className="calendar-title">
-          {view === 'monthly'
-            ? `${format(monthDays[0], 'MMM d')} – ${format(monthDays[monthDays.length - 1], 'MMM d, yyyy')}`
-            : `Week of ${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`
+          {view === 'weekly'
+            ? `Week of ${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`
+            : `${format(monthDays[0], 'MMM d')} – ${format(monthDays[monthDays.length - 1], 'MMM d, yyyy')}`
           }
         </h2>
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          {view === '3d' && (
+            <button className="btn btn-small" onClick={resetTilt} title="Reset tilt">Reset 3D</button>
+          )}
           <button className="btn btn-small" onClick={() => setCurrentDate(new Date())}>Today</button>
-          <button className="btn btn-small" onClick={() => setCurrentDate(view === 'monthly' ? addWeeks(currentDate, 5) : addWeeks(currentDate, 1))}>
+          <button className="btn btn-small" onClick={() => setCurrentDate(
+            view === 'weekly' ? addWeeks(currentDate, 1) : addWeeks(currentDate, 4)
+          )}>
             Next →
           </button>
         </div>
@@ -259,6 +300,80 @@ export default function SchedulePage() {
               })}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 3D Wall View */}
+      {view === '3d' && (
+        <div
+          className="calendar-3d-stage"
+          onWheel={onWallWheel}
+          onPointerDown={onWallPointerDown}
+          onPointerMove={onWallPointerMove}
+          onPointerUp={onWallPointerUp}
+          onPointerCancel={onWallPointerUp}
+        >
+          <div className="calendar-3d-bg" aria-hidden="true">
+            <EtherealShadow
+              color="rgba(120, 120, 140, 1)"
+              animation={{ scale: 100, speed: 90 }}
+              noise={{ opacity: 1, scale: 1.2 }}
+              sizing="fill"
+            />
+          </div>
+          <div
+            className="calendar-3d-wall"
+            style={{ transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)` }}
+          >
+            <div className="calendar-3d-grid">
+              {wallDays.map((day, idx) => {
+                const dayEvents = getEventsForDate(day);
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const row = Math.floor(idx / 7);
+                const rowCount = Math.ceil(wallDays.length / 7);
+                const rowOffset = row - (rowCount - 1) / 2;
+                const z = Math.max(-80, 40 - Math.abs(rowOffset) * 20);
+                return (
+                  <div
+                    key={dateStr}
+                    className={`calendar-3d-cell ${isToday(day) ? 'today' : ''}`}
+                    style={{ transform: `translateZ(${z}px)`, zIndex: Math.round(100 - Math.abs(rowOffset)) }}
+                    onClick={() => openAddForDate(day)}
+                  >
+                    <div className="cell-3d-back" />
+                    <div className="cell-3d-side cell-3d-right" />
+                    <div className="cell-3d-side cell-3d-left" />
+                    <div className="cell-3d-side cell-3d-top" />
+                    <div className="cell-3d-side cell-3d-bottom" />
+                    <div className="cell-3d-face">
+                      <div className="calendar-3d-cell-header">
+                        <span className="calendar-3d-day-num">{format(day, 'd')}</span>
+                        <span className="calendar-3d-day-name">{format(day, 'EEE')}</span>
+                      </div>
+                      <div className="calendar-3d-events">
+                        {dayEvents.slice(0, 3).map(ev => (
+                          <div
+                            key={ev.id}
+                            className="calendar-event-chip"
+                            onClick={e => { e.stopPropagation(); setViewingEvent(ev); }}
+                            title={ev.title}
+                          >
+                            {ev.startTime && <span className="event-time">{formatTime(ev.startTime)}</span>}
+                            <span className="event-chip-title">{ev.title}</span>
+                          </div>
+                        ))}
+                        {dayEvents.length > 3 && (
+                          <div className="calendar-event-more">+{dayEvents.length - 3} more</div>
+                        )}
+                      </div>
+                      <div className="calendar-3d-count">{dayEvents.length} event{dayEvents.length === 1 ? '' : 's'}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="calendar-3d-hint">Drag to rotate · Scroll to tilt · Click a day to add · Click an event to open</div>
         </div>
       )}
 
