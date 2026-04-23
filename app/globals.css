@@ -1970,6 +1970,32 @@ button { font: inherit; color: inherit; }
   border-color: var(--gold);
 }
 
+@media (max-width: 900px) {
+  .log-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md); }
+  .log-stat { padding: var(--space-lg); }
+  .log-stat-value { font-size: 26px; }
+}
+
+@media (max-width: 600px) {
+  .log-stats { gap: var(--space-sm); margin-bottom: var(--space-xl); }
+  .log-stat { padding: var(--space-md); }
+  .log-stat-value { font-size: 22px; }
+  .log-stat-label { font-size: 10px; }
+
+  .log-filters {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+  .filter-group { flex: 1 1 140px; min-width: 0; }
+  .filter-select { min-width: 0; width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .log-stats { grid-template-columns: 1fr; }
+  .filter-group { flex-basis: 100%; }
+}
+
 .log-pagination-summary {
   font-size: 12px;
   color: var(--text-3);
