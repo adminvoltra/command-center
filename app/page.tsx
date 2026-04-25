@@ -7,6 +7,7 @@ import { CollaboratorBadges } from '@/components/CollaboratorPicker';
 import { GLSLHills } from '@/components/ui/glsl-hills';
 
 const backgroundImages = [
+  '',
   '/media/Gould_Vesturhorn-Mt.-Wave-Reflections-.jpg',
   '/media/Great-Ocean-Road-London-Bridge.jpg',
   '/media/Lake-Moraine-Tree-and-Mountain-Vista.jpg',
@@ -86,7 +87,10 @@ export default function Overview() {
   return (
     <main className="page-container overview-page">
       {/* Background Image */}
-      <div className="overview-background" style={{ backgroundImage: `url(${backgroundImage})` }} />
+      <div
+        className="overview-background"
+        style={backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : { background: '#000' }}
+      />
       <div className="overview-overlay" />
 
       {/* Hero Banner */}
