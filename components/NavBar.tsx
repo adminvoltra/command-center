@@ -35,7 +35,7 @@ export default function NavBar() {
     <header className="navbar">
       <div className="navbar-inner">
         <Link href="/" className="navbar-brand">
-          <img src="/Vstar.svg" alt="Voltra" className="brand-logo" />
+          <img src="/VStar_Icon_White_Yellow.svg" alt="Voltra" className="brand-logo" />
           <div className="brand-text">
             <span className="brand-name">Mission Control</span>
           </div>

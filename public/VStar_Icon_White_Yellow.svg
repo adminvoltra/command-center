@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="White_Yelloe_Star" data-name="White Yelloe Star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 91.35 96.14">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
+
+      .cls-2 {
+        fill: #fec00f;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-1" points="26.71 20.48 0 20.48 43.69 96.14 57.04 73.02 26.71 20.48"/>
+  <polygon class="cls-2" points="78.11 13.24 91.35 20.48 78.11 27.72 70.87 40.95 63.63 27.72 50.4 20.48 63.63 13.24 70.87 0 78.11 13.24"/>
+</svg>
